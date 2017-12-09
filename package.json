@@ -1,0 +1,58 @@
+{
+  "name": "@octavo/core",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "lint": "tslint src/**/*.ts",
+    "test": "mocha --opts ./mocha.opts lib/test/*.test.js",
+    "test:watch": "mocha --opts ./mocha.opts --watch lib/test/*.test.js",
+    "test-ci": "istanbul cover ./node_modules/mocha/bin/_mocha -- --opts ./mocha.opts lib/test/*.test.js",
+    "commitmsg": "conventional-changelog-lint -e",
+    "prepublish": "in-publish && (npm run lint && npm run build && npm run test) || not-in-publish",
+    "prepush": "npm run prepublish",
+    "precommit": "npm run lint"
+  },
+  "keywords": [
+    "octavo"
+  ],
+  "author": {
+    "name": "SuperPaintman",
+    "email": "SuperPaintmanDeveloper@gmail.com",
+    "url": "https://superpaintman.com/"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "lib/",
+    "!src/",
+    "!scripts/"
+  ],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@commitlint/cli": "5.2.5",
+    "@commitlint/config-conventional": "5.2.3",
+    "@types/chai": "4.0.8",
+    "@types/lodash": "4.14.88",
+    "@types/mocha": "2.2.44",
+    "@types/node": "8.0.57",
+    "chai": "4.1.2",
+    "husky": "0.14.3",
+    "in-publish": "2.0.0",
+    "istanbul": "0.4.5",
+    "lodash": "4.17.4",
+    "mocha": "4.0.1",
+    "source-map-support": "0.5.0",
+    "tslint": "5.8.0",
+    "tslint-eslint-rules": "4.1.1",
+    "typescript": "2.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SuperPaintman/octavo.git"
+  }
+}
