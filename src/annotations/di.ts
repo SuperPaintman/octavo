@@ -90,13 +90,12 @@ export function InjectParam(token?: any) {
 
     const ctrInjections = getConstructorInjections(Target);
 
-    if (token !== undefined) {
-      ctrInjections[index] = token;
-    } else {
-      const types = getDesignParamTypes(Target);
 
-      ctrInjections[index] = types[index];
-    }
+    const type = token !== undefined
+               ? token
+               : getDesignParamTypes(Target)[index];
+
+    ctrInjections[index] = type;
 
     setConstructorInjections(ctrInjections, Target);
   };
@@ -106,13 +105,11 @@ export function InjectProperty(token?: any): PropertyDecorator {
   return function decorator(Target: Type<any>, key: string | symbol) {
     const propInjections = getPropertyInjections(Target.constructor);
 
-    if (token !== undefined) {
-      (propInjections as any)[key] = token;
-    } else {
-      const type = getDesignType(Target, key);
+    const type = token !== undefined
+               ? token
+               : getDesignType(Target, key);
 
       (propInjections as any)[key] = type;
-    }
 
     setPropertyInjections(propInjections, Target.constructor);
   };
