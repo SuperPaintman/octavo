@@ -8,13 +8,11 @@ import {
   TypeOfInjection,
   ServiceType,
   FactoryType,
-  ProviderType
+  ProviderType,
+  getInjectionType,
+  getConstructorInjections,
+  getPropertyInjections
 } from '../annotations/di';
-import {
-  METADATA_INJECTION_TYPE,
-  METADATA_CONSTRUCTOR_INJECTIONS,
-  METADATA_PROPERTY_INJECTIONS
-} from '../constants/metadata';
 
 
 /** Interfaces */
@@ -91,7 +89,7 @@ export class Injector implements AbstractInjector {
   }
 
   load(Provider: StaticProvider): this {
-    const type = Reflect.getOwnMetadata(METADATA_INJECTION_TYPE, Provider);
+    const type = getInjectionType(Provider);
 
     if (type === undefined) {
       throw new Error(`Missed required annotation on ${stringify(Provider)} provider`);
@@ -112,15 +110,15 @@ export class Injector implements AbstractInjector {
   }
 
   private _loadService(Provider: StaticProvider): this {
-    const ctrInjs: any[] = Reflect.getOwnMetadata(METADATA_CONSTRUCTOR_INJECTIONS, Provider) || [];
-    const propInjs: any[] = Reflect.getOwnMetadata(METADATA_PROPERTY_INJECTIONS, Provider) || {};
+    const constructorInjections = getConstructorInjections(Provider);
+    const propertyInjections = getPropertyInjections(Provider);
 
     const record = new Record(() => {
-      const args = ctrInjs.map((dep) => this.get(dep));
+      const args = constructorInjections.map((dep) => this.get(dep));
 
       const value = new Provider(...args);
 
-      _.forEach(propInjs, (dep, key) => {
+      _.forEach(propertyInjections, (dep, key) => {
         value[key] = this.get(dep);
       });
 
@@ -133,10 +131,10 @@ export class Injector implements AbstractInjector {
   }
 
   private _loadFactory(Provider: StaticProvider): this {
-    const propInjs: any[] = Reflect.getOwnMetadata(METADATA_PROPERTY_INJECTIONS, Provider) || {};
+    const propertyInjections = getPropertyInjections(Provider);
 
     const record = new Record(() => {
-      _.forEach(propInjs, (dep, key) => {
+      _.forEach(propertyInjections, (dep, key) => {
         Provider.prototype[key] = this.get(dep);
       });
 
@@ -149,7 +147,7 @@ export class Injector implements AbstractInjector {
        */
       // const Factory = function Factory() { }
       //
-      // _.forEach(propInjs, (dep, key) => {
+      // _.forEach(propertyInjections, (dep, key) => {
       //   Factory.prototype[key] = this.get(dep);
       // });
       //
@@ -166,11 +164,11 @@ export class Injector implements AbstractInjector {
   }
 
   private _loadProvider(Provider: StaticProvider): this {
-    const ctrInjs: any[] = Reflect.getOwnMetadata(METADATA_CONSTRUCTOR_INJECTIONS, Provider) || [];
-    const propInjs: any[] = Reflect.getOwnMetadata(METADATA_PROPERTY_INJECTIONS, Provider) || {};
+    const constructorInjections = getConstructorInjections(Provider);
+    const propertyInjections = getPropertyInjections(Provider);
 
     const record = new Record(() => {
-      const args = ctrInjs.map((dep) => this.get(dep));
+      const args = constructorInjections.map((dep) => this.get(dep));
 
       const provider = new Provider(...args);
 

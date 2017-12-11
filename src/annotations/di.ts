@@ -1,16 +1,29 @@
 'use strict';
 /** Imports */
-import 'reflect-metadata';
-
 import { Type } from '../utils/type';
+import {
+  makeMetadataGetter,
+  makeMetadataSetter,
+  getDesignParamTypes,
+  getDesignType
+} from '../utils/metadata';
 
 import {
-  METADATA_DESIGN_PARAM_TYPES,
-  METADATA_DESIGN_TYPE,
   METADATA_INJECTION_TYPE,
   METADATA_CONSTRUCTOR_INJECTIONS,
   METADATA_PROPERTY_INJECTIONS
 } from '../constants/metadata';
+
+
+/** Helpers */
+export const getInjectionType = makeMetadataGetter<TypeOfInjection | undefined>(METADATA_INJECTION_TYPE, () => undefined);
+export const setInjectionType = makeMetadataSetter<TypeOfInjection>(METADATA_INJECTION_TYPE);
+
+export const getConstructorInjections = makeMetadataGetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
+export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS);
+
+export const getPropertyInjections = makeMetadataGetter<object>(METADATA_PROPERTY_INJECTIONS, () => ({}));
+export const setPropertyInjections = makeMetadataSetter<object>(METADATA_PROPERTY_INJECTIONS);
 
 
 export enum TypeOfInjection {
@@ -36,21 +49,20 @@ export abstract class ProviderType<T = any> {
 function makeClassAnnotation<T>(type: TypeOfInjection) {
   return function Annotation() {
     return function annotation(Target: Type<T>) {
-      const oldType = Reflect.getOwnMetadata(METADATA_INJECTION_TYPE, Target);
+      const oldType = getInjectionType(Target);
 
       if (oldType) {
         throw new Error(`Cannot apply @${type}(), @${oldType}() already applied`);
       }
 
-      const ctrInjections = Reflect.getOwnMetadata(METADATA_CONSTRUCTOR_INJECTIONS, Target) || [];
+      const ctrInjections = getConstructorInjections(Target);
 
       while (ctrInjections.length < Target.length) {
         ctrInjections.push(null);
       }
 
-      Reflect.defineMetadata(METADATA_CONSTRUCTOR_INJECTIONS, ctrInjections, Target);
-
-      Reflect.defineMetadata(METADATA_INJECTION_TYPE, type, Target);
+      setConstructorInjections(ctrInjections, Target);
+      setInjectionType(type, Target);
     };
   };
 }
@@ -76,32 +88,32 @@ export function InjectParam(token?: any) {
       throw new Error(`Cannot inject not into ${Target.name}#constructor()`)
     }
 
-    const ctrInjections = Reflect.getOwnMetadata(METADATA_CONSTRUCTOR_INJECTIONS, Target) || [];
+    const ctrInjections = getConstructorInjections(Target);
 
     if (token !== undefined) {
       ctrInjections[index] = token;
     } else {
-      const types = Reflect.getOwnMetadata(METADATA_DESIGN_PARAM_TYPES, Target) || [];
+      const types = getDesignParamTypes(Target);
 
       ctrInjections[index] = types[index];
     }
 
-    Reflect.defineMetadata(METADATA_CONSTRUCTOR_INJECTIONS, ctrInjections, Target);
+    setConstructorInjections(ctrInjections, Target);
   };
 }
 
 export function InjectProperty(token?: any): PropertyDecorator {
   return function decorator(Target: Type<any>, key: string | symbol) {
-    const propInjections = Reflect.getOwnMetadata(METADATA_PROPERTY_INJECTIONS, Target.constructor) || {};
+    const propInjections = getPropertyInjections(Target.constructor);
 
     if (token !== undefined) {
-      propInjections[key] = token;
+      (propInjections as any)[key] = token;
     } else {
-      const type = Reflect.getMetadata(METADATA_DESIGN_TYPE, Target, key);
+      const type = getDesignType(Target, key);
 
-      propInjections[key] = type;
+      (propInjections as any)[key] = type;
     }
 
-    Reflect.defineMetadata(METADATA_PROPERTY_INJECTIONS, propInjections, Target.constructor);
+    setPropertyInjections(propInjections, Target.constructor);
   };
 }
