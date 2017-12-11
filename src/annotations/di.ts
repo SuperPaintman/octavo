@@ -97,7 +97,7 @@ export function Inject(token?: any) {
 export function InjectParam(token?: any) {
   return function decorator(Target: Type<any>, key: string | symbol, index: number) {
     if (key !== undefined) {
-      throw new Error(`Cannot inject not into ${Target.name}#constructor()`)
+      throw new Error(`Cannot inject not into ${stringify(Target)} constructor`);
     }
 
     const ctrInjections = getConstructorInjections(Target);
