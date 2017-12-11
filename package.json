@@ -32,7 +32,9 @@
     "!scripts/"
   ],
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "reflect-metadata": "0.1.10"
+  },
   "devDependencies": {
     "@commitlint/cli": "5.2.5",
     "@commitlint/config-conventional": "5.2.3",
