@@ -1,6 +1,9 @@
 'use strict';
 /** Imports */
+import * as _ from 'lodash';
+
 import { Type } from '../utils/type';
+import { stringify } from '../utils/stringify';
 import {
   makeMetadataGetter,
   makeMetadataSetter,
@@ -24,6 +27,9 @@ export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONST
 
 export const getPropertyInjections = makeMetadataGetter<object>(METADATA_PROPERTY_INJECTIONS, () => ({}));
 export const setPropertyInjections = makeMetadataSetter<object>(METADATA_PROPERTY_INJECTIONS);
+
+
+const MISSED_INJECTION = {};
 
 
 export enum TypeOfInjection {
@@ -58,7 +64,13 @@ function makeClassAnnotation<T>(type: TypeOfInjection) {
       const ctrInjections = getConstructorInjections(Target);
 
       while (ctrInjections.length < Target.length) {
-        ctrInjections.push(null);
+        ctrInjections.push(MISSED_INJECTION);
+      }
+
+      for (const [index, injection] of _.entries(ctrInjections)) {
+        if (injection === MISSED_INJECTION) {
+          throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
+        }
       }
 
       setConstructorInjections(ctrInjections, Target);
@@ -90,6 +102,9 @@ export function InjectParam(token?: any) {
 
     const ctrInjections = getConstructorInjections(Target);
 
+    while (ctrInjections.length < index) {
+      ctrInjections.push(MISSED_INJECTION);
+    }
 
     const type = token !== undefined
                ? token
@@ -109,7 +124,7 @@ export function InjectProperty(token?: any): PropertyDecorator {
                ? token
                : getDesignType(Target, key);
 
-      (propInjections as any)[key] = type;
+    (propInjections as any)[key] = type;
 
     setPropertyInjections(propInjections, Target.constructor);
   };

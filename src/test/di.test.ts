@@ -13,6 +13,20 @@ describe('Injector', () => {
 
   it('should override the provider if it is passed several times');
 
+  it('should throws an error if dependency did not annotate with @Inject()', () => {
+    @Service()
+    class Engine { }
+
+    expect(() => {
+      @Service()
+      class Car {
+        constructor(
+          public engine: Engine
+        ) { }
+      }
+    }).to.throw(Error, 'Missed annotation for 0 param in Car constructor');
+  });
+
   describe('#get()', () => {
     it('should works', () => {
       @Service()
