@@ -15,3 +15,6 @@ export {
   boolean,
   $slot
 } from './schema';
+
+// Errors
+export * from './errors/http';

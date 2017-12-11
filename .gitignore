@@ -9,3 +9,7 @@
 
 # Logs
 /*.log
+
+#code-generation-start
+/src/errors/http.ts
+#code-generation-end
