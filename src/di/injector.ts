@@ -6,12 +6,14 @@ import { Type } from '../utils/type';
 import { stringify } from '../utils/stringify';
 import {
   TypeOfInjection,
-  ServiceType,
-  FactoryType,
-  ProviderType,
   getInjectionType,
   getConstructorInjections,
   getPropertyInjections
+} from '../utils/metadata';
+import {
+  ServiceType,
+  FactoryType,
+  ProviderType
 } from '../annotations/di';
 
 

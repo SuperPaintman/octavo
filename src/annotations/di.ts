@@ -1,44 +1,24 @@
 'use strict';
 /** Imports */
-import * as _ from 'lodash';
-
 import { Type } from '../utils/type';
 import { stringify } from '../utils/stringify';
 import {
-  makeMetadataGetter,
-  makeMetadataSetter,
+  ClassAnnotation,
+  ConstructorParameterAnnotation,
+  PropertyAnnotation,
+  makeClassAnnotation,
+  TypeOfInjection,
+  getConstructorInjections,
   getDesignParamTypes,
-  getDesignType
+  setConstructorInjections,
+  getDesignType,
+  getPropertyInjections,
+  setPropertyInjections,
+  MISSED_INJECTION
 } from '../utils/metadata';
-
-import {
-  METADATA_INJECTION_TYPE,
-  METADATA_CONSTRUCTOR_INJECTIONS,
-  METADATA_PROPERTY_INJECTIONS
-} from '../constants/metadata';
 
 
 /** Helpers */
-export const getInjectionType = makeMetadataGetter<TypeOfInjection | undefined>(METADATA_INJECTION_TYPE, () => undefined);
-export const setInjectionType = makeMetadataSetter<TypeOfInjection>(METADATA_INJECTION_TYPE);
-
-export const getConstructorInjections = makeMetadataGetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
-export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS);
-
-export const getPropertyInjections = makeMetadataGetter<object>(METADATA_PROPERTY_INJECTIONS, () => ({}));
-export const setPropertyInjections = makeMetadataSetter<object>(METADATA_PROPERTY_INJECTIONS);
-
-
-const MISSED_INJECTION = {};
-
-
-export enum TypeOfInjection {
-  Service  = 'Service',
-  Factory  = 'Factory',
-  Provider = 'Provider'
-}
-
-
 export abstract class ServiceType {
 
 }
@@ -52,36 +32,18 @@ export abstract class ProviderType<T = any> {
 }
 
 
-function makeClassAnnotation<T>(type: TypeOfInjection) {
-  return function Annotation() {
-    return function annotation(Target: Type<T>) {
-      const oldType = getInjectionType(Target);
-
-      if (oldType) {
-        throw new Error(`Cannot apply @${type}(), @${oldType}() already applied`);
-      }
-
-      const ctrInjections = getConstructorInjections(Target);
-
-      while (ctrInjections.length < Target.length) {
-        ctrInjections.push(MISSED_INJECTION);
-      }
-
-      for (const [index, injection] of _.entries(ctrInjections)) {
-        if (injection === MISSED_INJECTION) {
-          throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
-        }
-      }
-
-      setConstructorInjections(ctrInjections, Target);
-      setInjectionType(type, Target);
-    };
-  };
-}
-
-export const Service  = makeClassAnnotation<ServiceType>(TypeOfInjection.Service);
-export const Factory  = makeClassAnnotation<FactoryType>(TypeOfInjection.Factory);
-export const Provider = makeClassAnnotation<ProviderType>(TypeOfInjection.Provider);
+export const Service  = makeClassAnnotation<Type<ServiceType>>(
+  'Service',
+  TypeOfInjection.Service
+);
+export const Factory  = makeClassAnnotation<Type<FactoryType>>(
+  'Factory',
+  TypeOfInjection.Factory
+);
+export const Provider = makeClassAnnotation<Type<ProviderType>>(
+  'Provider',
+  TypeOfInjection.Provider
+);
 
 
 export function Inject(token?: any) {
@@ -94,8 +56,8 @@ export function Inject(token?: any) {
   };
 }
 
-export function InjectParam(token?: any) {
-  return function decorator(Target: Type<any>, key: string | symbol, index: number) {
+export function InjectParam(token?: any): ConstructorParameterAnnotation {
+  return function decorator(Target, key, index) {
     if (key !== undefined) {
       throw new Error(`Cannot inject not into ${stringify(Target)} constructor`);
     }
@@ -116,16 +78,16 @@ export function InjectParam(token?: any) {
   };
 }
 
-export function InjectProperty(token?: any): PropertyDecorator {
-  return function decorator(Target: Type<any>, key: string | symbol) {
-    const propInjections = getPropertyInjections(Target.constructor);
+export function InjectProperty(token?: any): PropertyAnnotation {
+  return function decorator(target, key) {
+    const propInjections = getPropertyInjections(target.constructor);
 
     const type = token !== undefined
                ? token
-               : getDesignType(Target, key);
+               : getDesignType(target, key);
 
     (propInjections as any)[key] = type;
 
-    setPropertyInjections(propInjections, Target.constructor);
+    setPropertyInjections(propInjections, target.constructor);
   };
 }

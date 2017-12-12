@@ -5,14 +5,54 @@ import 'reflect-metadata';
 import * as _ from 'lodash';
 
 import { Type } from './type';
+import { stringify } from './stringify';
 
 import {
   METADATA_DESIGN_PARAM_TYPES,
-  METADATA_DESIGN_TYPE
+  METADATA_DESIGN_TYPE,
+  METADATA_ANNOTATION_NAME,
+  METADATA_INJECTION_TYPE,
+  METADATA_CONSTRUCTOR_INJECTIONS,
+  METADATA_PROPERTY_INJECTIONS
 } from '../constants/metadata';
 
 
+/** Interfaces */
+export interface ClassAnnotation<T extends Type<any>> {
+  (Target: T): void;
+}
+
+export interface PropertyAnnotation {
+  <T extends object>(target: T, key: string | symbol): void;
+}
+
+export interface MethodAnnotation {
+  <T extends object, TDescriptor>(target: T, key: string | symbol, descriptor: TypedPropertyDescriptor<TDescriptor>): void;
+}
+
+export interface ConstructorParameterAnnotation {
+  <T extends Type<any>>(Target: T, key: undefined, index: number): void;
+}
+
+export interface MethodParameterAnnotation {
+  <T extends object>(target: T, key: string | symbol, index: number): void;
+}
+
+export type ParameterAnnotation =
+  | ConstructorParameterAnnotation
+  | MethodParameterAnnotation
+  ;
+
+
 /** Helpers */
+export const MISSED_INJECTION = {};
+
+export enum TypeOfInjection {
+  Service  = 'Service',
+  Factory  = 'Factory',
+  Provider = 'Provider'
+}
+
 function getOwnMetadata(key: string | symbol, target: object): any;
 function getOwnMetadata(key: string | symbol, target: object, propertyKey: string | symbol): any;
 function getOwnMetadata(key: string | symbol, target: object, propertyKey?: string | symbol): any {
@@ -88,3 +128,53 @@ export const getDesignParamTypes = makeMetadataGetter<any[]>(METADATA_DESIGN_PAR
 
 export const getDesignType = makeMetadataGetter(METADATA_DESIGN_TYPE, () => undefined);
 // export const setMetadataDesignType
+
+export const getAnnotationName = makeMetadataGetter<string | undefined>(METADATA_ANNOTATION_NAME, () => undefined);
+export const setAnnotationName = makeMetadataSetter<string>(METADATA_ANNOTATION_NAME);
+
+export const getInjectionType = makeMetadataGetter<TypeOfInjection | undefined>(METADATA_INJECTION_TYPE, () => undefined);
+export const setInjectionType = makeMetadataSetter<TypeOfInjection>(METADATA_INJECTION_TYPE);
+
+export const getConstructorInjections = makeMetadataGetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
+export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS);
+
+export const getPropertyInjections = makeMetadataGetter<object>(METADATA_PROPERTY_INJECTIONS, () => ({}));
+export const setPropertyInjections = makeMetadataSetter<object>(METADATA_PROPERTY_INJECTIONS);
+
+
+export function makeClassAnnotation<T extends Type<any>>(
+  name: string,
+  type: TypeOfInjection,
+  extension?: (this: null, ...args: any[]) => (Target: T) => void
+) {
+  return <() => ClassAnnotation<T>>function Annotation(...args: any[]): ClassAnnotation<T> {
+    return function annotation(Target: T) {
+      const oldName = getAnnotationName(Target);
+
+      if (oldName !== undefined) {
+        throw new Error(`Cannot apply @${name}(), @${oldName}() already applied`);
+      }
+
+      setAnnotationName(name, Target);
+
+      const ctrInjections = getConstructorInjections(Target);
+
+      while (ctrInjections.length < Target.length) {
+        ctrInjections.push(MISSED_INJECTION);
+      }
+
+      for (const [index, injection] of _.entries(ctrInjections)) {
+        if (injection === MISSED_INJECTION) {
+          throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
+        }
+      }
+
+      setConstructorInjections(ctrInjections, Target);
+      setInjectionType(type, Target);
+
+      if (extension !== undefined) {
+        extension.apply(null, args)(Target);
+      }
+    };
+  };
+}
