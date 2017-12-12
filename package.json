@@ -34,6 +34,8 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "chalk": "2.3.0",
+    "dateformat": "3.0.2",
     "joi": "13.0.2",
     "lodash": "4.17.4",
     "reflect-metadata": "0.1.10"
@@ -43,6 +45,8 @@
     "@commitlint/config-conventional": "5.2.3",
     "@types/chai": "4.0.8",
     "@types/chai-as-promised": "7.1.0",
+    "@types/chalk": "2.2.0",
+    "@types/dateformat": "1.0.1",
     "@types/joi": "13.0.2",
     "@types/lodash": "4.14.88",
     "@types/mocha": "2.2.44",
