@@ -57,6 +57,27 @@ describe('Injector', () => {
     expect(engine.go()).to.be.equal('Vroom Vrooom VROOOM!');
   });
 
+  it('should throws an error if the provider types are not compatible', () => {
+    @Service()
+    class Engine {
+      go() {
+        return 'Vrooom!';
+      }
+    }
+
+    @Factory()
+    class ConfigurableEngine {
+      constructor(
+        public cylinders: number
+      ) { }
+    }
+
+    expect(() => {
+      const injector = new Injector([
+        { use: ConfigurableEngine, insteadOf: Engine }
+      ]);
+    }).to.throw(Error, 'Cannot override Engine provider, Factory and Service types are not compatible');
+  });
 
   it('should throws an error if dependency did not annotate with @Inject()', () => {
     @Service()

@@ -117,6 +117,10 @@ export class Injector implements AbstractInjector {
       throw new Error(`Missed required annotation on overridden ${stringify(token)} provider`);
     }
 
+    if (type !== typeOfToken) {
+      throw new Error(`Cannot override ${stringify(token)} provider, ${type} and ${typeOfToken} types are not compatible`);
+    }
+
     switch (type) {
       case TypeOfInjection.Service:  return this._loadService(Provider, token);
       case TypeOfInjection.Factory:  return this._loadFactory(Provider, token);
