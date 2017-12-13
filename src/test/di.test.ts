@@ -93,6 +93,56 @@ describe('Injector', () => {
     }).to.throw(Error, 'Missed annotation for 0 param in Car constructor');
   });
 
+  describe('Hierarchical Injectors', () => {
+    it('should works', () => {
+      @Service()
+      class Utils { }
+
+      const parentInjector = new Injector([
+        Utils
+      ]);
+
+      const injector = new Injector([], parentInjector);
+
+      const utils = injector.get(Utils);
+
+      expect(utils).to.be.an.instanceOf(Utils);
+    });
+
+    it('should override the provider', () => {
+      @Service()
+      class Engine {
+        go() {
+          return 'Vrooom!';
+        }
+      }
+
+      @Service()
+      class V8Engine implements Engine {
+        go() {
+          return 'Vroom Vrooom VROOOM!';
+        }
+      }
+
+      const parentInjector = new Injector([
+        Engine
+      ]);
+
+      const injector = new Injector([
+        { use: V8Engine, insteadOf: Engine }
+      ], parentInjector);
+
+      const engine = parentInjector.get(Engine);
+      const engineV8 = injector.get(Engine);
+
+      expect(engine).to.be.a.instanceOf(Engine);
+      expect(engine.go()).to.be.equal('Vrooom!');
+
+      expect(engineV8).to.be.a.instanceOf(V8Engine);
+      expect(engineV8.go()).to.be.equal('Vroom Vrooom VROOOM!');
+    });
+  });
+
   describe('#get()', () => {
     it('should works', () => {
       @Service()

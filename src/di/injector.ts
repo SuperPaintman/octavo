@@ -55,8 +55,8 @@ export class Injector implements AbstractInjector {
   private _records = new Map<any, Record<any>>();
 
   constructor(
-    providers:       Provider[]
-    // readonly parent: AbstractInjector = AbstractInjector.NULL
+    providers:       Provider[],
+    readonly parent: AbstractInjector = AbstractInjector.NULL
   ) {
     this._initialLoad(providers);
   }
@@ -73,16 +73,11 @@ export class Injector implements AbstractInjector {
       return record.resolve();
     }
 
-    /**
-     * @todo(SuperPaintman):
-     *    now, there is no need for a hierarchical DI.
-     *    Maybe add it in the future.
-     */
-    // const parentValue = this.parent.get(token);
-    //
-    // if (parentValue !== undefined) {
-    //   return parentValue;
-    // }
+    const parentValue = this.parent.get(token);
+
+    if (parentValue !== undefined) {
+      return parentValue;
+    }
 
     throw new Error(`No provider for ${stringify(token)}!`);
   }
