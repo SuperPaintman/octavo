@@ -104,7 +104,7 @@ describe('Injector', () => {
       }).to.throw(Error, 'Missed required annotation on Utils provider');
     });
 
-    it('should throws an error if overloaded provider is not annotated', () => {
+    it('should throws an error if overridden provider is not annotated', () => {
       expect(() => {
         class Utils { }
 
@@ -114,7 +114,7 @@ describe('Injector', () => {
         const injector = new Injector([
           { use: MyUtils, insteadOf: Utils }
         ]);
-      }).to.throw(Error, 'Missed required annotation on overloaded Utils provider');
+      }).to.throw(Error, 'Missed required annotation on overridden Utils provider');
     });
 
     it('should works irrespective of the dependency definitions order', () => {

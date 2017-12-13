@@ -114,7 +114,7 @@ export class Injector implements AbstractInjector {
     }
 
     if (typeOfToken === undefined) {
-      throw new Error(`Missed required annotation on overloaded ${stringify(token)} provider`);
+      throw new Error(`Missed required annotation on overridden ${stringify(token)} provider`);
     }
 
     switch (type) {
