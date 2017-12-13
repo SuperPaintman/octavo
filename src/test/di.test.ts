@@ -11,7 +11,51 @@ describe('Injector', () => {
     new Injector([]);
   });
 
-  it('should override the provider if it is passed several times');
+  it('should override the provider if it is passed several times', () => {
+    @Service()
+    class Engine {
+      go() {
+        return 'Vrooom!';
+      }
+    }
+
+    const injector = new Injector([
+      Engine,
+      Engine,
+      Engine
+    ]);
+
+    const engine = injector.get(Engine);
+
+    expect(engine).to.be.a.instanceOf(Engine);
+    expect(engine.go()).to.be.equal('Vrooom!');
+  });
+
+  it('should override the provider with "insteadOf" provider', () => {
+    @Service()
+    class Engine {
+      go() {
+        return 'Vrooom!';
+      }
+    }
+
+    @Service()
+    class V8Engine implements Engine {
+      go() {
+        return 'Vroom Vrooom VROOOM!';
+      }
+    }
+
+    const injector = new Injector([
+      { use: V8Engine, insteadOf: Engine }
+    ]);
+
+    const engine = injector.get(Engine);
+
+    expect(engine).to.be.a.instanceOf(V8Engine);
+    expect(engine.go()).to.be.equal('Vroom Vrooom VROOOM!');
+  });
+
 
   it('should throws an error if dependency did not annotate with @Inject()', () => {
     @Service()
@@ -57,6 +101,19 @@ describe('Injector', () => {
           Utils
         ]);
       }).to.throw(Error, 'Missed required annotation on Utils provider');
+    });
+
+    it('should throws an error if overloaded provider is not annotated', () => {
+      expect(() => {
+        class Utils { }
+
+        @Service()
+        class MyUtils implements Utils { }
+
+        const injector = new Injector([
+          { use: MyUtils, insteadOf: Utils }
+        ]);
+      }).to.throw(Error, 'Missed required annotation on overloaded Utils provider');
     });
 
     it('should works irrespective of the dependency definitions order', () => {

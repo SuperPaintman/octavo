@@ -2,6 +2,7 @@
 /** Imports */
 import * as _ from 'lodash';
 
+import { Provider, OverrideProvider } from './provider';
 import { Type } from '../utils/type';
 import { stringify } from '../utils/stringify';
 import {
@@ -15,10 +16,6 @@ import {
   FactoryType,
   ProviderType
 } from '../annotations/di';
-
-
-/** Interfaces */
-export type StaticProvider = any;
 
 
 class Record<T> {
@@ -58,10 +55,10 @@ export class Injector implements AbstractInjector {
   private _records = new Map<any, Record<any>>();
 
   constructor(
-    Providers:       StaticProvider[]
+    providers:       Provider[]
     // readonly parent: AbstractInjector = AbstractInjector.NULL
   ) {
-    this._initialLoad(Providers);
+    this._initialLoad(providers);
   }
 
   // get<T extends ServiceType>(token: Type<T>): T;
@@ -90,35 +87,52 @@ export class Injector implements AbstractInjector {
     throw new Error(`No provider for ${stringify(token)}!`);
   }
 
-  load(Provider: StaticProvider): this {
+  load(provider: Provider): this {
+    if (_.isFunction(provider)) {
+      return this._loadType(provider as any, provider as any);
+    } else {
+      return this._loadOverride(provider as any);
+    }
+  }
+
+  private _initialLoad(providers: Provider[]): void {
+    for (const provider of providers) {
+      this.load(provider);
+    }
+  }
+
+  private _loadOverride(obj: OverrideProvider): this {
+    return this._loadType(obj.use, obj.insteadOf);
+  }
+
+  private _loadType(Provider: Type<any>, token: Type<any>): this {
     const type = getInjectionType(Provider);
+    const typeOfToken = getInjectionType(token);
 
     if (type === undefined) {
       throw new Error(`Missed required annotation on ${stringify(Provider)} provider`);
     }
 
+    if (typeOfToken === undefined) {
+      throw new Error(`Missed required annotation on overloaded ${stringify(token)} provider`);
+    }
+
     switch (type) {
-      case TypeOfInjection.Service:  return this._loadService(Provider);
-      case TypeOfInjection.Factory:  return this._loadFactory(Provider);
-      case TypeOfInjection.Provider: return this._loadProvider(Provider);
+      case TypeOfInjection.Service:  return this._loadService(Provider, token);
+      case TypeOfInjection.Factory:  return this._loadFactory(Provider, token);
+      case TypeOfInjection.Provider: return this._loadProvider(Provider, token);
       default: throw new Error(`Undefined provider type: ${type}`);
     }
   }
 
-  private _initialLoad(Providers: StaticProvider[]): void {
-    for (const provider of Providers) {
-      this.load(provider);
-    }
-  }
-
-  private _loadService(Provider: StaticProvider): this {
-    const constructorInjections = getConstructorInjections(Provider);
-    const propertyInjections = getPropertyInjections(Provider);
+  private _loadService(Class: Type<any>, token: Type<any>): this {
+    const constructorInjections = getConstructorInjections(Class);
+    const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
       const args = constructorInjections.map((dep) => this.get(dep));
 
-      const value = new Provider(...args);
+      const value = new Class(...args);
 
       _.forEach(propertyInjections, (dep, key) => {
         value[key] = this.get(dep);
@@ -127,17 +141,17 @@ export class Injector implements AbstractInjector {
       return value;
     });
 
-    this._records.set(Provider, record);
+    this._records.set(token, record);
 
     return this;
   }
 
-  private _loadFactory(Provider: StaticProvider): this {
-    const propertyInjections = getPropertyInjections(Provider);
+  private _loadFactory(Class: Type<any>, token: Type<any>): this {
+    const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
       _.forEach(propertyInjections, (dep, key) => {
-        Provider.prototype[key] = this.get(dep);
+        Class.prototype[key] = this.get(dep);
       });
 
       /**
@@ -157,29 +171,29 @@ export class Injector implements AbstractInjector {
       // Provider.prototype.__proto__ = Factory.prototype;
       // Factory.prototype.__proto__ = oldProto;
 
-      return Provider;
+      return Class;
     });
 
-    this._records.set(Provider, record);
+    this._records.set(token, record);
 
     return this;
   }
 
-  private _loadProvider(Provider: StaticProvider): this {
-    const constructorInjections = getConstructorInjections(Provider);
-    const propertyInjections = getPropertyInjections(Provider);
+  private _loadProvider(Class: Type<any>, token: Type<any>): this {
+    const constructorInjections = getConstructorInjections(Class);
+    const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
       const args = constructorInjections.map((dep) => this.get(dep));
 
-      const provider = new Provider(...args);
+      const provider = new Class(...args);
 
       const value = provider.provide();
 
       return value;
     });
 
-    this._records.set(Provider, record);
+    this._records.set(token, record);
 
     return this;
   }
