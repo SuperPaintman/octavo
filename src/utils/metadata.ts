@@ -159,17 +159,24 @@ export function makeClassAnnotation<T extends Type<any>>(
 
       const ctrInjections = getConstructorInjections(Target);
 
-      while (ctrInjections.length < Target.length) {
-        ctrInjections.push(MISSED_INJECTION);
-      }
-
-      for (const [index, injection] of _.entries(ctrInjections)) {
-        if (injection === MISSED_INJECTION) {
-          throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
+      if (type === TypeOfInjection.Factory) {
+        if (ctrInjections.length > 0) {
+          throw new Error(`@${name}() cannot take injections into constructor`);
         }
+      } else {
+        while (ctrInjections.length < Target.length) {
+          ctrInjections.push(MISSED_INJECTION);
+        }
+
+        for (const [index, injection] of _.entries(ctrInjections)) {
+          if (injection === MISSED_INJECTION) {
+            throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
+          }
+        }
+
+        setConstructorInjections(ctrInjections, Target);
       }
 
-      setConstructorInjections(ctrInjections, Target);
       setInjectionType(type, Target);
 
       if (extension !== undefined) {

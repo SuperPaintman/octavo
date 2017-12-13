@@ -2,6 +2,7 @@
 /** Imports */
 import { expect } from './helpers';
 
+import { Type } from '../utils/type';
 import { Service, Factory, Provider, Inject } from '../annotations/di';
 import { Injector } from '../di/injector';
 
@@ -374,15 +375,42 @@ describe('Injector', () => {
   describe('@Factory()', () => {
     it('should returns a extended constructor', () => {
       @Factory()
-      class UserModel { }
+      class UserModel {
+        constructor(
+          public name: string
+        ) { }
+      }
 
       const injector = new Injector([
         UserModel
       ]);
 
-      const User = injector.get(UserModel);
+      /**
+       * @todo(SuperPaintman):
+       *    Improve type inference for factories
+       */
+      const User: Type<UserModel> = injector.get(UserModel) as Type<UserModel>;
 
       expect(User).to.be.equals(UserModel);
+
+      const user = new User('Aleksandr');
+
+      expect(user).to.be.an.instanceOf(User);
+      expect(user.name).to.be.equal('Aleksandr');
+    });
+
+    it('should throws an error it', () => {
+      expect(() => {
+        @Service()
+        class Utils { }
+
+        @Factory()
+        class UserModel {
+          constructor(
+            @Inject() private utils: Utils
+          ) { }
+        }
+      }).to.throw(Error, '@Factory() cannot take injections into constructor');
     });
   });
 
