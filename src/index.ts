@@ -1,8 +1,12 @@
 'use strict';
+// Application
+export { OctavoApplication, ApplicationConfig } from './application';
+
 // Controller
 export { ResourceController } from './controller';
 
 // Annotations
+export { Application } from './annotations/application';
 export { Service, Factory, Provider, Inject } from './annotations/di';
 
 // DI
