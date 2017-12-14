@@ -1,4 +1,7 @@
 'use strict';
+// Controller
+export { ResourceController } from './controller';
+
 // Annotations
 export { Service, Factory, Provider, Inject } from './annotations/di';
 
