@@ -21,3 +21,14 @@ export {
 
 // Errors
 export * from './errors/http';
+
+// Router
+export {
+  all,
+  get,
+  post,
+  patch,
+  del,
+  scope,
+  resource
+} from './router';
