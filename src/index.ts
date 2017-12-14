@@ -1,4 +1,7 @@
 'use strict';
+// Bootstrap
+export { bootstrap } from './bootstrap';
+
 // Application
 export { OctavoApplication, ApplicationConfig } from './application';
 
