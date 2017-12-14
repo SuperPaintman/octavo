@@ -7,6 +7,7 @@ export { ResourceController } from './controller';
 
 // Annotations
 export { Application } from './annotations/application';
+export { Controller } from './annotations/controller';
 export { Service, Factory, Provider, Inject } from './annotations/di';
 
 // DI
