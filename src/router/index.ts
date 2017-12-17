@@ -8,6 +8,7 @@ import {
   ResourceController,
   ControllerHandler
 } from '../controller';
+import { MiddlewareExec } from '../middleware';
 
 
 /** Interfaces */
@@ -16,6 +17,7 @@ export type Resource<T> = {
 }
 
 export interface ScopeOptions {
+  middlewares?: Type<MiddlewareExec>[];
 }
 
 export interface HttpMethod {
@@ -88,6 +90,11 @@ function applyScopeOptions(
   scope:   Scope,
   options: ScopeOptions
 ): void {
+  if (options.middlewares !== undefined && options.middlewares.length > 0) {
+    _.forEach(options.middlewares, (middleware) => {
+      scope.addMiddleware(middleware);
+    });
+  }
 }
 
 function register<T>(

@@ -2,6 +2,7 @@
 /** Imports */
 import { Type } from '../utils/type';
 import { ControllerHandler } from '../controller';
+import { MiddlewareExec } from '../middleware';
 
 
 /* Interfaces */
@@ -34,9 +35,10 @@ function normalizePath(path: string): string {
 
 
 export class Scope {
-  path:     string;
-  handler?: Handler<any>;
-  stack:    Scope[]        = [];
+  path:         string;
+  handler?:     Handler<any>;
+  middlewares:  Type<MiddlewareExec>[] = [];
+  stack:        Scope[]                = [];
 
   constructor(
     path: string
@@ -56,6 +58,14 @@ export class Scope {
       Controller,
       key
     };
+
+    return this;
+  }
+
+  addMiddleware<T extends MiddlewareExec>(
+    Middleware: Type<T>
+  ): this {
+    this.middlewares.push(Middleware);
 
     return this;
   }

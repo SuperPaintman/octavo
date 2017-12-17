@@ -20,6 +20,7 @@ import {
 import {
   getProviders
 } from '../annotations/application';
+import { MiddlewareExec } from '../middleware';
 import {
   HttpError,
   InternalServerError,
@@ -238,9 +239,15 @@ export class Kernel {
   }
 
   private _scopeToRouter(scope: Scope): Router {
-    const { path, stack, handler } = scope;
+    const { path, stack, handler, middlewares } = scope;
 
     const router = new Router();
+
+    if (middlewares.length > 0) {
+      _.forEach(middlewares, (Middleware) => {
+        this._addMiddleware(router, path, Middleware);
+      });
+    }
 
     if (handler !== undefined) {
       this._addHandler(router, path, handler);
@@ -281,6 +288,20 @@ export class Kernel {
       const data = await controller[key]();
 
       ctx.body = data;
+    });
+  }
+
+  private _addMiddleware<T extends MiddlewareExec>(
+    router:     Router,
+    path:       string,
+    Middleware: Type<T>
+  ) {
+    const middleware = this._injector.load(Middleware).get(Middleware);
+
+    router.use(path, async (ctx, next) => {
+      await middleware.exec();
+
+      await next();
     });
   }
 }
