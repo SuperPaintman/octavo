@@ -21,6 +21,7 @@ import {
   getProviders
 } from '../annotations/application';
 import { MiddlewareExec } from '../middleware';
+import { Transform, AnyTransform } from '../transformer';
 import {
   HttpError,
   InternalServerError,
@@ -31,6 +32,7 @@ import * as HTTP_ERRORS from '../errors/http';
 
 /** Interfaces */
 export interface KoaOctavo {
+  transformer:       AnyTransform | null;
 }
 
 declare module 'koa' {
@@ -113,6 +115,35 @@ export class Kernel {
         await next();
       });
     }
+
+    /**
+     * Transformer
+     */
+    this._koa.use(async (ctx, next) => {
+      try {
+        await next();
+
+        if (ctx.$octavo.transformer === null) {
+          return;
+        }
+
+        if ((ctx.$octavo.transformer as Transform).success === undefined) {
+          return;
+        }
+
+        ctx.body = (ctx.$octavo.transformer as Transform).success(ctx.body);
+      } catch (err) {
+        if (ctx.$octavo.transformer === null) {
+          throw err;
+        }
+
+        if ((ctx.$octavo.transformer as Transform).error === undefined) {
+          throw err;
+        }
+
+        ctx.body = (ctx.$octavo.transformer as Transform).error(err);
+      }
+    });
 
     /**
      * Status fixer. It's necessary, because without it status stays
@@ -252,6 +283,7 @@ export class Kernel {
 
   private _extendKoaContext(context: Koa.Context): void {
     const value: KoaOctavo = {
+      transformer:       null
     };
 
     Object.defineProperties(context, {
@@ -266,9 +298,13 @@ export class Kernel {
   }
 
   private _scopeToRouter(scope: Scope): Router {
-    const { path, stack, handler, middlewares } = scope;
+    const { path, stack, handler, middlewares, Transformer } = scope;
 
     const router = new Router();
+
+    if (Transformer !== undefined) {
+      this._addTransformer(router, path, Transformer);
+    }
 
     if (middlewares.length > 0) {
       _.forEach(middlewares, (Middleware) => {
@@ -327,6 +363,21 @@ export class Kernel {
 
     router.use(path, async (ctx, next) => {
       await middleware.exec();
+
+      await next();
+    });
+  }
+
+  private _addTransformer<T extends AnyTransform>(
+    router:      Router,
+    path:        string,
+    Transformer: Type<T>
+  ) {
+    const transformer = this._injector.load(Transformer).get(Transformer);
+
+
+    router.use(path, async (ctx, next) => {
+      ctx.$octavo.transformer = transformer;
 
       await next();
     });

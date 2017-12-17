@@ -3,6 +3,7 @@
 import { Type } from '../utils/type';
 import { ControllerHandler } from '../controller';
 import { MiddlewareExec } from '../middleware';
+import { AnyTransform } from '../transformer';
 
 
 /* Interfaces */
@@ -37,6 +38,7 @@ function normalizePath(path: string): string {
 export class Scope {
   path:         string;
   handler?:     Handler<any>;
+  Transformer?: Type<AnyTransform>;
   middlewares:  Type<MiddlewareExec>[] = [];
   stack:        Scope[]                = [];
 
@@ -58,6 +60,14 @@ export class Scope {
       Controller,
       key
     };
+
+    return this;
+  }
+
+  setTransformer<T extends AnyTransform>(
+    Transformer: Type<T>
+  ): this {
+    this.Transformer = Transformer;
 
     return this;
   }

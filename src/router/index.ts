@@ -9,6 +9,7 @@ import {
   ControllerHandler
 } from '../controller';
 import { MiddlewareExec } from '../middleware';
+import { AnyTransform } from '../transformer';
 
 
 /** Interfaces */
@@ -17,6 +18,7 @@ export type Resource<T> = {
 }
 
 export interface ScopeOptions {
+  transformer?: Type<AnyTransform>;
   middlewares?: Type<MiddlewareExec>[];
 }
 
@@ -90,6 +92,10 @@ function applyScopeOptions(
   scope:   Scope,
   options: ScopeOptions
 ): void {
+  if (options.transformer !== undefined) {
+    scope.setTransformer(options.transformer);
+  }
+
   if (options.middlewares !== undefined && options.middlewares.length > 0) {
     _.forEach(options.middlewares, (middleware) => {
       scope.addMiddleware(middleware);
