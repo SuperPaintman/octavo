@@ -5,6 +5,12 @@ export { bootstrap } from './bootstrap';
 // Application
 export { OctavoApplication, ApplicationConfig } from './application';
 
+// Context
+export {
+  MiddlewareContext,
+  ControllerContext
+} from './context';
+
 // Controller
 export { ResourceController } from './controller';
 
@@ -17,6 +23,14 @@ export { Controller } from './annotations/controller';
 export { Middleware } from './annotations/middleware';
 export { Transformer } from './annotations/transformer';
 export { Service, Factory, Provider, Inject } from './annotations/di';
+export {
+  Next,
+  NextFn,
+  Context,
+  Params,
+  Body,
+  Headers
+} from './annotations/contextual';
 
 // DI
 export { Injector } from './di/injector';

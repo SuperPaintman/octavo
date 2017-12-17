@@ -18,8 +18,17 @@ import {
   Handler
 } from '../router/scope';
 import {
+  ControllerContext,
+  MiddlewareContext
+} from '../context';
+import {
   getProviders
 } from '../annotations/application';
+import {
+  ContextualInjection,
+  TypeOfContextualInjection,
+  getContextualInjections
+} from '../annotations/contextual';
 import { MiddlewareExec } from '../middleware';
 import { Transform, AnyTransform } from '../transformer';
 import {
@@ -345,10 +354,16 @@ export class Kernel {
      *    it loads multi-time.
      */
     const controller = this._injector.load(Controller).get(Controller);
+    const ctxInjections = getContextualInjections(Controller, key);
 
 
     router.register(path, [method], async (ctx, next) => {
-      const data = await controller[key]();
+      const args = this._resolveControllerContextualInjections(
+        ctxInjections,
+        ctx
+      );
+
+      const data = await controller[key](...args);
 
       ctx.body = data;
     });
@@ -360,12 +375,109 @@ export class Kernel {
     Middleware: Type<T>
   ) {
     const middleware = this._injector.load(Middleware).get(Middleware);
+    const ctxInjections = getContextualInjections(Middleware, 'exec');
+
+    const hasNext = _.includes(
+      ctxInjections.map((it) => it.type),
+      TypeOfContextualInjection.Next
+    );
+
 
     router.use(path, async (ctx, next) => {
-      await middleware.exec();
+      const args = this._resolveMiddlewareContextualInjections(
+        ctxInjections,
+        ctx,
+        () => Promise.resolve(next()) // next
+      );
 
-      await next();
+      await middleware.exec(...args);
+
+      if (!hasNext) {
+        await next();
+      }
     });
+  }
+
+  private _resolveControllerContextualInjections(
+    injections: ContextualInjection[],
+    ctx:        Koa.Context
+  ): any[] {
+    return _.map(injections, ({ type, args }) => {
+      switch (type) {
+        // @Body()
+        case TypeOfContextualInjection.Body:
+          return this._resolveRequestBody(ctx, args[0]);
+
+        // @Headers()
+        case TypeOfContextualInjection.Headers:
+          return this._resolveRequestHeaders(ctx, args[0]);
+
+        // @Params()
+        case TypeOfContextualInjection.Params:
+          return this._resolveRequestParams(ctx, args[0]);
+
+        // @Context()
+        case TypeOfContextualInjection.Context:
+          return new ControllerContext(ctx);
+
+        default:
+          throw new Error(`Unexpected contextual injection type: ${type}`);
+      }
+    });
+  }
+
+  private _resolveMiddlewareContextualInjections(
+    injections: ContextualInjection[],
+    ctx:        Koa.Context,
+    next:       any
+  ): any[] {
+    return _.map(injections, ({ type }) => {
+      switch (type) {
+        // @Context()
+        case TypeOfContextualInjection.Context:
+          return new MiddlewareContext(ctx);
+
+        // @Next()
+        case TypeOfContextualInjection.Next:
+          return next;
+
+        default:
+          throw new Error(`Unexpected contextual injection type: ${type}`);
+      }
+    });
+  }
+
+  private _resolveRequestBody(
+    ctx:        Koa.Context,
+    property?:  string | symbol
+  ) {
+    if (property === undefined) {
+      return ctx.request.body;
+    }
+
+    return ctx.request.body[property];
+  }
+
+  private _resolveRequestHeaders(
+    ctx:        Koa.Context,
+    property?:  string | symbol
+  ) {
+    if (property === undefined) {
+      return ctx.request.headers;
+    }
+
+    return ctx.request.headers[property];
+  }
+
+  private _resolveRequestParams(
+    ctx:        Koa.Context,
+    property?:  string | symbol
+  ) {
+    if (property === undefined) {
+      return ctx.params;
+    }
+
+    return ctx.params[property];
   }
 
   private _addTransformer<T extends AnyTransform>(
