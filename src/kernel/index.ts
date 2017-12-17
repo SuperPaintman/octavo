@@ -20,7 +20,8 @@ import {
 } from '../router/scope';
 import {
   ControllerContext,
-  MiddlewareContext
+  MiddlewareContext,
+  StateContext
 } from '../context';
 import {
   Schema
@@ -41,6 +42,7 @@ import {
 } from '../annotations/response';
 import { MiddlewareExec } from '../middleware';
 import { Transform, AnyTransform } from '../transformer';
+import { ResolveState } from '../state';
 import {
   HttpError,
   InternalServerError,
@@ -54,6 +56,7 @@ import * as HTTP_ERRORS from '../errors/http';
 
 /** Interfaces */
 export interface KoaOctavo {
+  resolvedStates:    Map<Type<ResolveState<any>>, any>;
   transformer:       AnyTransform | null;
 }
 
@@ -305,6 +308,7 @@ export class Kernel {
 
   private _extendKoaContext(context: Koa.Context): void {
     const value: KoaOctavo = {
+      resolvedStates:    new Map(),
       transformer:       null
     };
 
@@ -393,7 +397,7 @@ export class Kernel {
         reqQuerySchema
       );
 
-      const args = this._resolveControllerContextualInjections(
+      const args = await this._resolveControllerContextualInjections(
         ctxInjections,
         ctx,
         body,
@@ -422,7 +426,7 @@ export class Kernel {
 
 
     router.use(path, async (ctx, next) => {
-      const args = this._resolveMiddlewareContextualInjections(
+      const args = await this._resolveMiddlewareContextualInjections(
         ctxInjections,
         ctx,
         () => Promise.resolve(next()) // next
@@ -442,8 +446,8 @@ export class Kernel {
     body:       any,
     headers:    any,
     params:     any
-  ): any[] {
-    return _.map(injections, ({ type, args }) => {
+  ): Promise<any[]> {
+    return Promise.all(_.map(injections, ({ type, args }) => {
       switch (type) {
         // @Body()
         case TypeOfContextualInjection.Body:
@@ -461,18 +465,22 @@ export class Kernel {
         case TypeOfContextualInjection.Context:
           return new ControllerContext(ctx);
 
+        // @InjectState()
+        case TypeOfContextualInjection.InjectState:
+          return this._resolveRequestState(ctx, args[0]);
+
         default:
           throw new Error(`Unexpected contextual injection type: ${type}`);
       }
-    });
+    }));
   }
 
   private _resolveMiddlewareContextualInjections(
     injections: ContextualInjection[],
     ctx:        Koa.Context,
     next:       any
-  ): any[] {
-    return _.map(injections, ({ type }) => {
+  ): Promise<any[]> {
+    return Promise.all(_.map(injections, ({ type, args }) => {
       switch (type) {
         // @Context()
         case TypeOfContextualInjection.Context:
@@ -482,10 +490,39 @@ export class Kernel {
         case TypeOfContextualInjection.Next:
           return next;
 
+        // @InjectState()
+        case TypeOfContextualInjection.InjectState:
+          return this._resolveRequestState(ctx, args[0]);
+
         default:
           throw new Error(`Unexpected contextual injection type: ${type}`);
       }
-    });
+    }));
+  }
+
+  private _resolveStateContextualInjections(
+    injections: ContextualInjection[],
+    ctx:        Koa.Context,
+    headers:    any
+  ): Promise<any[]> {
+    return Promise.all(_.map(injections, ({ type, args }) => {
+      switch (type) {
+        // @Context()
+        case TypeOfContextualInjection.Context:
+          return new StateContext(ctx);
+
+        // @Headers()
+        case TypeOfContextualInjection.Headers:
+          return this._resolveRequestHeaders(headers, args[0]);
+
+        // @InjectState()
+        case TypeOfContextualInjection.InjectState:
+          return this._resolveRequestState(ctx, args[0]);
+
+        default:
+          throw new Error(`Unexpected contextual injection type: ${type}`);
+      }
+    }));
   }
 
   private _resolveRequestBody(
@@ -513,6 +550,36 @@ export class Kernel {
     return property === undefined
          ? params
          : params[property];
+  }
+
+  private async _resolveRequestState<T>(
+    ctx:   Koa.Context,
+    Token: Type<ResolveState<T>>
+  ): Promise<T> {
+    if (ctx.$octavo.resolvedStates.has(Token)) {
+      return ctx.$octavo.resolvedStates.get(Token);
+    }
+
+    /**
+     * @todo(SuperPaintman):
+     *    Move initialization of `state` to outside of resolver.
+     *    But, it works and maybe it isn't so necessary.
+     */
+
+    const ctxInjections = getContextualInjections(Token, 'resolve');
+    const state = this._injector.get(Token);
+
+    const args = await this._resolveStateContextualInjections(
+      ctxInjections,
+      ctx,
+      ctx.headers
+    );
+
+    const val = await state.resolve(...args);
+
+    ctx.$octavo.resolvedStates.set(Token, val);
+
+    return val;
   }
 
   private async _validateRequest(

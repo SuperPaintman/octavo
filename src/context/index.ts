@@ -54,3 +54,7 @@ export class PolicyContext extends CommonContext {
 export class ControllerContext extends CommonContext {
 
 }
+
+export class StateContext extends CommonContext {
+
+}

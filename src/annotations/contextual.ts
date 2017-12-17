@@ -12,6 +12,9 @@ import {
 import {
   METADATA_CONTEXTUAL_INJECTIONS
 } from '../constants/metadata';
+import {
+  ResolveState
+} from '../state';
 
 export interface NextFn {
   (): Promise<void>;
@@ -37,14 +40,19 @@ export interface HeadersAnnotation {
   (name?: string): MethodParameterAnnotation;
 }
 
+export interface InjectStateAnnotation {
+  (token: Type<ResolveState<any>>): MethodParameterAnnotation;
+}
+
 
 /** Helpers */
 export enum TypeOfContextualInjection {
-  Next    = 'Next',
-  Context = 'Context',
-  Params  = 'Params',
-  Body    = 'Body',
-  Headers = 'Headers'
+  Next        = 'Next',
+  Context     = 'Context',
+  Params      = 'Params',
+  Body        = 'Body',
+  Headers     = 'Headers',
+  InjectState = 'InjectState'
 }
 
 export const getContextualInjections = makeMetadataGetter<ContextualInjection[]>(METADATA_CONTEXTUAL_INJECTIONS, () => []);
@@ -105,4 +113,15 @@ export const Body: BodyAnnotation = makeContextualInjection(
 export const Headers: HeadersAnnotation = makeContextualInjection(
   'Headers',
   TypeOfContextualInjection.Headers
+);
+
+/**
+ * @todo(SuperPaintman):
+ *    I don't like the name of this annotaion. Maybe rename it, or merge with
+ *    `@Inject()` annotaion.
+ */
+
+export const InjectState: InjectStateAnnotation = makeContextualInjection(
+  'InjectState',
+  TypeOfContextualInjection.InjectState
 );
