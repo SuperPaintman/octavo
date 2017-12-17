@@ -9,4 +9,6 @@ export const METADATA_INJECTION_TYPE         = 'octavo:injectiontype';
 export const METADATA_CONSTRUCTOR_INJECTIONS = 'octavo:constructorinjections';
 export const METADATA_PROPERTY_INJECTIONS    = 'octavo:propertyinjections';
 export const METADATA_CONTEXTUAL_INJECTIONS  = 'octavo:contextualinjections';
+export const METADATA_REQUEST                = 'octavo:request';
+export const METADATA_RESPONSE               = 'octavo:response';
 export const METADATA_PROVIDERS              = 'octavo:providers';

@@ -22,6 +22,8 @@ export { Application } from './annotations/application';
 export { Controller } from './annotations/controller';
 export { Middleware } from './annotations/middleware';
 export { Transformer } from './annotations/transformer';
+export { Request } from './annotations/request';
+export { Response } from './annotations/response';
 export { Service, Factory, Provider, Inject } from './annotations/di';
 export {
   Next,

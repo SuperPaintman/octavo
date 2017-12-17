@@ -9,6 +9,7 @@ import * as _ from 'lodash';
 import { Injector } from '../di/injector';
 import { Logger } from '../services/logger';
 import { Type } from '../utils/type';
+import { tolerantPromise } from '../utils/tolerant-promise';
 import {
   OctavoApplication,
   ApplicationConfig
@@ -22,6 +23,9 @@ import {
   MiddlewareContext
 } from '../context';
 import {
+  Schema
+} from '../schema';
+import {
   getProviders
 } from '../annotations/application';
 import {
@@ -29,6 +33,12 @@ import {
   TypeOfContextualInjection,
   getContextualInjections
 } from '../annotations/contextual';
+import {
+  getRequest
+} from '../annotations/request';
+import {
+  getResponse
+} from '../annotations/response';
 import { MiddlewareExec } from '../middleware';
 import { Transform, AnyTransform } from '../transformer';
 import {
@@ -36,6 +46,9 @@ import {
   InternalServerError,
   NotFound
 } from '../errors/http';
+import {
+  ValidationError
+} from '../errors/validation';
 import * as HTTP_ERRORS from '../errors/http';
 
 
@@ -355,17 +368,42 @@ export class Kernel {
      */
     const controller = this._injector.load(Controller).get(Controller);
     const ctxInjections = getContextualInjections(Controller, key);
+    const {
+      body:    reqBodySchema,
+      params:  reqParamsSchema,
+      headers: reqHeadersSchema,
+      query:   reqQuerySchema
+    } = getRequest(Controller, key);
+    const {
+      body:    resBodySchema,
+      headers: resHeadersSchema
+    } = getResponse(Controller, key);
 
 
     router.register(path, [method], async (ctx, next) => {
+      const {
+        body,
+        headers,
+        params
+      } = await this._validateRequest(
+        ctx,
+        reqBodySchema,
+        reqParamsSchema,
+        reqHeadersSchema,
+        reqQuerySchema
+      );
+
       const args = this._resolveControllerContextualInjections(
         ctxInjections,
-        ctx
+        ctx,
+        body,
+        headers,
+        params
       );
 
       const data = await controller[key](...args);
 
-      ctx.body = data;
+      ctx.body = await this._validateResponseBody(data, resBodySchema);
     });
   }
 
@@ -400,21 +438,24 @@ export class Kernel {
 
   private _resolveControllerContextualInjections(
     injections: ContextualInjection[],
-    ctx:        Koa.Context
+    ctx:        Koa.Context,
+    body:       any,
+    headers:    any,
+    params:     any
   ): any[] {
     return _.map(injections, ({ type, args }) => {
       switch (type) {
         // @Body()
         case TypeOfContextualInjection.Body:
-          return this._resolveRequestBody(ctx, args[0]);
+          return this._resolveRequestBody(body, args[0]);
 
         // @Headers()
         case TypeOfContextualInjection.Headers:
-          return this._resolveRequestHeaders(ctx, args[0]);
+          return this._resolveRequestHeaders(headers, args[0]);
 
         // @Params()
         case TypeOfContextualInjection.Params:
-          return this._resolveRequestParams(ctx, args[0]);
+          return this._resolveRequestParams(params, args[0]);
 
         // @Context()
         case TypeOfContextualInjection.Context:
@@ -448,36 +489,113 @@ export class Kernel {
   }
 
   private _resolveRequestBody(
-    ctx:        Koa.Context,
+    body:       any,
     property?:  string | symbol
   ) {
-    if (property === undefined) {
-      return ctx.request.body;
-    }
-
-    return ctx.request.body[property];
+    return property === undefined
+         ? body
+         : body[property];
   }
 
   private _resolveRequestHeaders(
-    ctx:        Koa.Context,
+    headers:    any,
     property?:  string | symbol
   ) {
-    if (property === undefined) {
-      return ctx.request.headers;
-    }
-
-    return ctx.request.headers[property];
+    return property === undefined
+         ? headers
+         : headers[property];
   }
 
   private _resolveRequestParams(
-    ctx:        Koa.Context,
+    params:     any,
     property?:  string | symbol
   ) {
-    if (property === undefined) {
-      return ctx.params;
+    return property === undefined
+         ? params
+         : params[property];
+  }
+
+  private async _validateRequest(
+    ctx:            Koa.Context,
+    bodySchema?:    Schema,
+    paramsSchema?:  Schema,
+    headersSchema?: Schema,
+    querySchema?:   Schema
+  ): Promise<{
+    body:    any;
+    params:  any;
+    headers: any;
+    query:   any;
+  }> {
+    const [
+      body,
+      params,
+      headers,
+      query
+    ] = await Promise.all([
+      tolerantPromise(this._validateRequestBody(ctx.request.body, bodySchema)),
+      tolerantPromise(this._validateRequestParams(ctx.params, paramsSchema)),
+      tolerantPromise(this._validateRequestHeaders(ctx.request.headers, headersSchema)),
+      tolerantPromise(this._validateRequestQuery(ctx.request.query, querySchema))
+    ]);
+
+    /**
+     * @todo(SuperPaintman):
+     *    Add merging errors into one BFE (Big Fluffy Error) :)
+     */
+    if (
+      headers.error   !== null
+      || params.error !== null
+      || query.error  !== null
+      || body.error   !== null
+    ) {
+      throw new ValidationError();
     }
 
-    return ctx.params[property];
+    return {
+      body:    body.result,
+      params:  params.result,
+      headers: headers.result,
+      query:   query.result
+    };
+  }
+
+  private _validateRequestBody(obj: any, schema?: Schema) {
+    return this._validateRequestSchema(obj, schema);
+  }
+
+  private _validateRequestParams(obj: any, schema?: Schema) {
+    return this._validateRequestSchema(obj, schema);
+  }
+
+  private _validateRequestHeaders(obj: any, schema?: Schema) {
+    return this._validateRequestSchema(obj, schema);
+  }
+
+  private _validateRequestQuery(obj: any, schema?: Schema) {
+    return this._validateRequestSchema(obj, schema);
+  }
+
+  private _validateRequestSchema(obj: any, schema?: Schema) {
+    return schema === undefined
+         ? Promise.resolve(obj)
+         : schema.validate(obj);
+  }
+
+  private _validateResponseBody(obj: any, schema?: Schema) {
+    if (schema === undefined) {
+      return Promise.resolve(obj);
+    }
+
+    return schema.validate(obj)
+      .catch((err) => {
+        /**
+         * @todo(SuperPaintman):
+         *    Change this error. It should be an internal error for developers
+         *    and admins.
+         */
+        throw new Error('Invalid response body');
+      });
   }
 
   private _addTransformer<T extends AnyTransform>(
