@@ -29,6 +29,17 @@ import {
 import * as HTTP_ERRORS from '../errors/http';
 
 
+/** Interfaces */
+export interface KoaOctavo {
+}
+
+declare module 'koa' {
+  interface Context {
+    $octavo: KoaOctavo;
+  }
+}
+
+
 export class Kernel {
   private _app: OctavoApplication;
   private _koa = new Koa();
@@ -64,6 +75,11 @@ export class Kernel {
     if (this._app.configure !== undefined) {
       await this._app.configure(this._makeConfigurator());
     }
+
+    this._koa.use(async (ctx, next) => {
+      this._extendKoaContext(ctx);
+      await next();
+    });
 
     this._koa.use(async (ctx, next) => {
       try {
@@ -232,6 +248,17 @@ export class Kernel {
         kernel._port = num;
       }
     };
+  }
+
+  private _extendKoaContext(context: Koa.Context): void {
+    const value: KoaOctavo = {
+    };
+
+    Object.defineProperties(context, {
+      $octavo: {
+        value
+      }
+    });
   }
 
   private _initRouter(scope: Scope) {
