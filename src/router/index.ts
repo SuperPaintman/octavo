@@ -15,6 +15,22 @@ export type Resource<T> = {
   [key in keyof ResourceController]: keyof T & ControllerHandler;
 }
 
+export interface ScopeOptions {
+}
+
+export interface HttpMethod {
+  <T>(
+    path:       string,
+    Controller: Type<T>,
+    key:        keyof T & ControllerHandler
+  ): Scope;
+  <T>(
+    path:       string,
+    options:    ScopeOptions,
+    Controller: Type<T>,
+    key:        keyof T & ControllerHandler
+  ): Scope;
+}
 
 
 /** Helpers */
@@ -68,15 +84,24 @@ class Stack {
 
 let _stack = new Stack();
 
+function applyScopeOptions(
+  scope:   Scope,
+  options: ScopeOptions
+): void {
+}
+
 function register<T>(
   method:     string,
   status:     number,
   path:       string,
   Controller: Type<T>,
-  key:        keyof T & ControllerHandler
+  key:        keyof T & ControllerHandler,
+  options:    ScopeOptions = {}
 ): Scope {
   const parentScope = _stack.getParentScope();
   const s = _stack.open(path);
+
+  applyScopeOptions(s, options);
 
   s.setHandler(method, status, Controller, key);
 
@@ -89,13 +114,19 @@ function register<T>(
 function createMethod(
   method: string,
   status: number = 200
-) {
-  return function httpMethod<T>(
-    path:       string,
-    Controller: Type<T>,
-    key:        keyof T & ControllerHandler
-  ): Scope {
-    return register(method, status, path, Controller, key);
+): HttpMethod {
+  return function httpMethod<T>(path: string, ...args: any[]): Scope {
+    let options:    ScopeOptions = {};
+    let Controller: Type<T>;
+    let key:        keyof T & ControllerHandler;
+
+    if (args.length === 3) {
+      [options, Controller, key] = args;
+    } else {
+      [Controller, key] = args;
+    }
+
+    return register(method, status, path, Controller, key, options);
   };
 }
 
@@ -106,9 +137,22 @@ export const post   = createMethod('post');
 export const patch  = createMethod('patch');
 export const del    = createMethod('delete');
 
-export function scope(path: string, fn: () => void): Scope {
+export function scope(path: string, fn: () => void): Scope;
+export function scope(path: string, options: ScopeOptions, fn: () => void): Scope;
+export function scope(path: string, ...args: any[]): Scope {
+  let fn: () => void;
+  let options: ScopeOptions = {};
+
+  if (args.length === 2) {
+    [options, fn] = args;
+  } else {
+    [fn] = args;
+  }
+
   const parentScope = _stack.getParentScope();
   const s = _stack.open(path);
+
+  applyScopeOptions(s, options);
 
   fn();
 
@@ -122,12 +166,32 @@ export function resource<T>(
   path:       string,
   Controller: Type<T>,
   methods?:   Resource<T>
-) {
+): Scope;
+export function resource<T>(
+  path:       string,
+  options:    ScopeOptions,
+  Controller: Type<T>,
+  methods?:   Resource<T>
+): Scope;
+export function resource<T>(
+  path:       string,
+  ...args:    any[]
+): Scope {
+  let options:    ScopeOptions = {};
+  let Controller: Type<T>;
+  let methods:    Resource<T> | undefined;
+
+  if (args.length === 3) {
+    [options, Controller, methods] = args;
+  } else {
+    [Controller, methods] = args;
+  }
+
   const resourceMethods: Resource<any> = methods !== undefined
                                        ? methods
                                        : DEFAULT_METHODS;
 
-  scope(path, () => {
+  return scope(path, options, () => {
     _.forEach(resourceMethods, (key, method) => {
       if (Controller.prototype[method] === undefined) {
         return;
