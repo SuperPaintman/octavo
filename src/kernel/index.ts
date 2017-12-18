@@ -21,6 +21,7 @@ import {
 import {
   ControllerContext,
   MiddlewareContext,
+  PolicyContext,
   StateContext
 } from '../context';
 import {
@@ -41,6 +42,7 @@ import {
   getResponse
 } from '../annotations/response';
 import { MiddlewareExec } from '../middleware';
+import { PolicyExec } from '../policy';
 import { Transform, AnyTransform } from '../transformer';
 import { ResolveState } from '../state';
 import {
@@ -324,7 +326,7 @@ export class Kernel {
   }
 
   private _scopeToRouter(scope: Scope): Router {
-    const { path, stack, handler, middlewares, Transformer } = scope;
+    const { path, stack, handler, middlewares, policies, Transformer } = scope;
 
     const router = new Router();
 
@@ -335,6 +337,12 @@ export class Kernel {
     if (middlewares.length > 0) {
       _.forEach(middlewares, (Middleware) => {
         this._addMiddleware(router, path, Middleware);
+      });
+    }
+
+    if (policies.length > 0) {
+      _.forEach(policies, (policy) => {
+        this._addPolicy(router, path, policy);
       });
     }
 
@@ -440,6 +448,27 @@ export class Kernel {
     });
   }
 
+  private _addPolicy<T extends PolicyExec>(
+    router: Router,
+    path:   string,
+    Policy: Type<T>
+  ) {
+    const policy = this._injector.load(Policy).get(Policy);
+    const ctxInjections = getContextualInjections(Policy, 'exec');
+
+
+    router.use(path, async (ctx, next) => {
+      const args = await this._resolvePolicyContextualInjections(
+        ctxInjections,
+        ctx
+      );
+
+      await policy.exec(...args);
+
+      await next();
+    });
+  }
+
   private _resolveControllerContextualInjections(
     injections: ContextualInjection[],
     ctx:        Koa.Context,
@@ -489,6 +518,26 @@ export class Kernel {
         // @Next()
         case TypeOfContextualInjection.Next:
           return next;
+
+        // @InjectState()
+        case TypeOfContextualInjection.InjectState:
+          return this._resolveRequestState(ctx, args[0]);
+
+        default:
+          throw new Error(`Unexpected contextual injection type: ${type}`);
+      }
+    }));
+  }
+
+  private _resolvePolicyContextualInjections(
+    injections: ContextualInjection[],
+    ctx:        Koa.Context,
+  ): Promise<any[]> {
+    return Promise.all(_.map(injections, ({ type, args }) => {
+      switch (type) {
+        // @Context()
+        case TypeOfContextualInjection.Context:
+          return new PolicyContext(ctx);
 
         // @InjectState()
         case TypeOfContextualInjection.InjectState:

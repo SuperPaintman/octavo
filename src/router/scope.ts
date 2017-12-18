@@ -3,6 +3,7 @@
 import { Type } from '../utils/type';
 import { ControllerHandler } from '../controller';
 import { MiddlewareExec } from '../middleware';
+import { PolicyExec } from '../policy';
 import { AnyTransform } from '../transformer';
 
 
@@ -40,6 +41,7 @@ export class Scope {
   handler?:     Handler<any>;
   Transformer?: Type<AnyTransform>;
   middlewares:  Type<MiddlewareExec>[] = [];
+  policies:     Type<PolicyExec>[]     = [];
   stack:        Scope[]                = [];
 
   constructor(
@@ -76,6 +78,14 @@ export class Scope {
     Middleware: Type<T>
   ): this {
     this.middlewares.push(Middleware);
+
+    return this;
+  }
+
+  addPolicy<T extends PolicyExec>(
+    Policy: Type<T>
+  ): this {
+    this.policies.push(Policy);
 
     return this;
   }

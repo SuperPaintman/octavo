@@ -8,6 +8,7 @@ export { OctavoApplication, ApplicationConfig } from './application';
 // Context
 export {
   MiddlewareContext,
+  PolicyContext,
   ControllerContext,
   StateContext
 } from './context';
@@ -18,6 +19,9 @@ export { ResourceController } from './controller';
 // Middleware
 export { MiddlewareExec } from './middleware';
 
+// Policy
+export { PolicyExec } from './policy';
+
 // State
 export { ResolveState } from './state';
 
@@ -25,6 +29,7 @@ export { ResolveState } from './state';
 export { Application } from './annotations/application';
 export { Controller } from './annotations/controller';
 export { Middleware } from './annotations/middleware';
+export { Policy } from './annotations/policy';
 export { State } from './annotations/state';
 export { Transformer } from './annotations/transformer';
 export { Request } from './annotations/request';

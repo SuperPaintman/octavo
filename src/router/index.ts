@@ -9,6 +9,7 @@ import {
   ControllerHandler
 } from '../controller';
 import { MiddlewareExec } from '../middleware';
+import { PolicyExec } from '../policy';
 import { AnyTransform } from '../transformer';
 
 
@@ -20,6 +21,7 @@ export type Resource<T> = {
 export interface ScopeOptions {
   transformer?: Type<AnyTransform>;
   middlewares?: Type<MiddlewareExec>[];
+  policies?: Type<PolicyExec>[];
 }
 
 export interface HttpMethod {
@@ -99,6 +101,12 @@ function applyScopeOptions(
   if (options.middlewares !== undefined && options.middlewares.length > 0) {
     _.forEach(options.middlewares, (middleware) => {
       scope.addMiddleware(middleware);
+    });
+  }
+
+  if (options.policies !== undefined && options.policies.length > 0) {
+    _.forEach(options.policies, (policy) => {
+      scope.addPolicy(policy);
     });
   }
 }
