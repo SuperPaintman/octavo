@@ -202,7 +202,7 @@ export function resource<T>(
   let Controller: Type<T>;
   let methods:    Resource<T> | undefined;
 
-  if (args.length === 3) {
+  if (_.isFunction(args[1])) {
     [options, Controller, methods] = args;
   } else {
     [Controller, methods] = args;
