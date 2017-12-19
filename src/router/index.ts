@@ -148,7 +148,7 @@ function register<T>(
   return s;
 }
 
-function createMethod(
+export function createMethod(
   method: string,
   status: number = 200
 ): HttpMethod {

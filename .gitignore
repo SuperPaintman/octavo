@@ -12,4 +12,5 @@
 
 #code-generation-start
 /src/errors/http.ts
+/src/router/dsl.ts
 #code-generation-end
