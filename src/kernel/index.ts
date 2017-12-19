@@ -54,6 +54,9 @@ import {
   ErrorInterceptorHandler
 } from '../error-interceptor';
 import {
+  UnexpectedErrorInterceptor
+} from '../error-interceptor/unexpected.error-interceptor';
+import {
   HttpError,
   InternalServerError,
   NotFound
@@ -158,6 +161,11 @@ export class Kernel {
         await next();
       });
     }
+
+    /**
+     * Add defaults (Error Interceptor / Formatters / Middlewares / etc.)
+     */
+    this._addDefaultUnexpectedErrorInterceptor();
 
     /**
      * Formatter
@@ -409,6 +417,16 @@ export class Kernel {
       $octavo: {
         value
       }
+    });
+  }
+
+  private _addDefaultUnexpectedErrorInterceptor(): void {
+    const unexpectedErrorInterceptor: any = this._injector.load(UnexpectedErrorInterceptor).get(UnexpectedErrorInterceptor);
+
+    this._koa.use(async (ctx, next) => {
+      ctx.$octavo.errorInterceptors.push(unexpectedErrorInterceptor);
+
+      await next();
     });
   }
 
