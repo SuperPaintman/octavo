@@ -13,4 +13,5 @@ export const METADATA_REQUEST                = 'octavo:request';
 export const METADATA_RESPONSE               = 'octavo:response';
 export const METADATA_VIEW                   = 'octavo:view';
 export const METADATA_PROVIDERS              = 'octavo:providers';
+export const METADATA_VIEW_ENGINE            = 'octavo:viewengine';
 export const METADATA_FORMATTER              = 'octavo:formatter';

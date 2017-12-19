@@ -6,7 +6,5 @@ export interface Data {
 
 
 export interface ViewEngineRender {
-  readonly ext: string;
-
   render(path: string, data?: Data): Promise<string>;
 }

@@ -57,6 +57,9 @@ import {
   FormatterMetadata,
   getFormatter
 } from '../annotations/formatter';
+import {
+  getViewEngine
+} from '../annotations/view-engine';
 import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
 import { ResponseFormatter } from '../formatter';
@@ -453,9 +456,10 @@ export class Kernel {
         }
 
         const engine = kernel._injector.get(Engine);
+        const viewEngine = getViewEngine(Engine);
 
         if (ext === undefined) {
-          ext = engine.ext;
+          ext = viewEngine!.ext;
         } else if (!ext.startsWith('.')) {
           ext = `.${ext}`;
         }
