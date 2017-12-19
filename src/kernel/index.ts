@@ -28,6 +28,15 @@ import {
   Schema
 } from '../schema';
 import {
+  ViewEngineRender
+} from '../view-engine';
+import {
+  ViewRenderer
+} from '../view-engine/view';
+import {
+  HtmlViewEngine
+} from '../view-engine/html.view-engine';
+import {
   getProviders
 } from '../annotations/application';
 import {
@@ -41,6 +50,9 @@ import {
 import {
   getResponse
 } from '../annotations/response';
+import {
+  getView
+} from '../annotations/view';
 import {
   FormatterMetadata,
   getFormatter
@@ -73,6 +85,7 @@ export interface ContextFormatter extends FormatterMetadata {
 }
 
 export interface KoaOctavo {
+  isHtml:            boolean;
   resolvedStates:    Map<Type<ResolveState<any>>, any>;
   formatters:        ContextFormatter[];
   transformer:       AnyTransform | null;
@@ -90,15 +103,20 @@ export class Kernel {
   private _app: OctavoApplication;
   private _koa = new Koa();
   private _defaultInjector = new Injector([
-    Logger
+    Logger,
+    HtmlViewEngine
   ]);
   private _injector: Injector;
   private _logger: Logger;
+  private _router?: Router;
+  private _cachedViews = new Map<string, ViewRenderer>();
 
   // Config
   private _port = 3000;
   private _showPoweredBy = true;
-  private _router?: Router;
+  private _views = [process.cwd()];
+  private _viewCache = true;
+  private _viewEngines: { [ext: string]: ViewEngineRender } = { };
 
   constructor(
     Application: Type<OctavoApplication>
@@ -113,6 +131,9 @@ export class Kernel {
 
     // Init app
     this._app = this._injector.load(Application).get(Application);
+
+    // Init view engines
+    this._viewEngines['.html'] = this._injector.get(HtmlViewEngine);
   }
 
   async configure(): Promise<void> {
@@ -171,7 +192,11 @@ export class Kernel {
     this._koa.use(async (ctx, next) => {
       await next();
 
-      const { formatters } = ctx.$octavo;
+      const { isHtml, formatters } = ctx.$octavo;
+
+      if (isHtml) {
+        return;
+      }
 
       // Backwards, because formatters are add by append
       for (let i = formatters.length - 1; i >= 0; i--) {
@@ -200,6 +225,10 @@ export class Kernel {
     this._koa.use(async (ctx, next) => {
       try {
         await next();
+
+        if (ctx.$octavo.isHtml) {
+          return;
+        }
 
         if (ctx.$octavo.transformer === null) {
           return;
@@ -399,12 +428,46 @@ export class Kernel {
 
       port(num: number) {
         kernel._port = num;
+      },
+
+      views(root: string | string[]) {
+        if (_.isArray(root)) {
+          kernel._views = root;
+        } else {
+          kernel._views = [root];
+        }
+      },
+
+      viewCache(cache: boolean) {
+        kernel._viewCache = cache;
+      },
+
+      viewEngine(...args: any[]) {
+        let ext: string | undefined = undefined;
+        let Engine: Type<ViewEngineRender>;
+
+        if (args.length === 1) {
+          [Engine] = args;
+        } else {
+          [ext, Engine] = args;
+        }
+
+        const engine = kernel._injector.get(Engine);
+
+        if (ext === undefined) {
+          ext = engine.ext;
+        } else if (!ext.startsWith('.')) {
+          ext = `.${ext}`;
+        }
+
+        kernel._viewEngines[ext] = engine;
       }
     };
   }
 
   private _extendKoaContext(context: Koa.Context): void {
     const value: KoaOctavo = {
+      isHtml:            false,
       resolvedStates:    new Map(),
       formatters:        [],
       transformer:       null,
@@ -505,7 +568,7 @@ export class Kernel {
       body:    resBodySchema,
       headers: resHeadersSchema
     } = getResponse(Controller, key);
-
+    const view = getView(Controller, key);
 
     router.register(path, [method], async (ctx, next) => {
       const {
@@ -530,8 +593,47 @@ export class Kernel {
 
       const data = await controller[key](...args);
 
-      ctx.body = await this._validateResponseBody(data, resBodySchema);
+      const validData = await this._validateResponseBody(data, resBodySchema);
+
+      if (view !== undefined && !!ctx.accepts('text/html')) {
+        ctx.$octavo.isHtml = true;
+
+        const viewTemplate = this._resolveView(view.name);
+
+        if (viewTemplate === null) {
+          throw new Error(`Failed to lookup view "${view.name}" in "${this._views.join('", "')}"`);
+        }
+
+        ctx.body = await viewTemplate.render({
+          data: validData
+        });
+        return;
+      }
+
+      ctx.body = validData;
     });
+  }
+
+  private _resolveView(name: string): ViewRenderer | null {
+    if (this._viewCache && this._cachedViews.has(name)) {
+      return this._cachedViews.get(name)!;
+    }
+
+    const view = new ViewRenderer(
+      name,
+      this._views,
+      this._viewEngines
+    );
+
+    if (view.path === null) {
+      return null;
+    }
+
+    if (this._viewCache) {
+      this._cachedViews.set(name, view);
+    }
+
+    return view;
   }
 
   private _addMiddleware<T extends MiddlewareExec>(

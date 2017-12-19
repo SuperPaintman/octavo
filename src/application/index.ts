@@ -1,6 +1,8 @@
 'use strict';
 /** Import */
+import { Type } from '../utils/type';
 import { Scope } from '../router/scope';
+import { ViewEngineRender } from '../view-engine';
 
 
 export interface ApplicationConfig {
@@ -9,6 +11,13 @@ export interface ApplicationConfig {
   port(num: number): void;
 
   poweredBy(show: boolean): void;
+
+  views(root: string | string []): void;
+
+  viewCache(cache: boolean): void;
+
+  viewEngine(Engine: Type<ViewEngineRender>): void;
+  viewEngine(ext: string, Engine: Type<ViewEngineRender>): void;
 
   /**
    * @todo(SuperPaintman):

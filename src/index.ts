@@ -40,8 +40,10 @@ export { State } from './annotations/state';
 export { Formatter } from './annotations/formatter';
 export { Transformer } from './annotations/transformer';
 export { ErrorInterceptor } from './annotations/error-interceptor';
+export { ViewEngine } from './annotations/view-engine';
 export { Request } from './annotations/request';
 export { Response } from './annotations/response';
+export { View } from './annotations/view';
 export { Service, Factory, Provider, Inject } from './annotations/di';
 export {
   Next,
@@ -69,6 +71,10 @@ export {
 
 // Errors
 export * from './errors/http';
+
+// View Engine
+export { ViewEngineRender } from './view-engine';
+export { HtmlViewEngine } from './view-engine/html.view-engine';
 
 // Transformer
 export * from './transformer';
