@@ -10,6 +10,7 @@ import {
 } from '../controller';
 import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
+import { ResponseFormatter } from '../formatter';
 import { AnyTransform } from '../transformer';
 
 
@@ -20,6 +21,7 @@ export type Resource<T> = {
 
 export interface ScopeOptions {
   transformer?: Type<AnyTransform>;
+  formatters?: Type<ResponseFormatter>[];
   middlewares?: Type<MiddlewareExec>[];
   policies?: Type<PolicyExec>[];
 }
@@ -96,6 +98,12 @@ function applyScopeOptions(
 ): void {
   if (options.transformer !== undefined) {
     scope.setTransformer(options.transformer);
+  }
+
+  if (options.formatters !== undefined && options.formatters.length > 0) {
+    _.forEach(options.formatters, (formatter) => {
+      scope.addFormatter(formatter);
+    });
   }
 
   if (options.middlewares !== undefined && options.middlewares.length > 0) {

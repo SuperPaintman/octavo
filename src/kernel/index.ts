@@ -41,8 +41,13 @@ import {
 import {
   getResponse
 } from '../annotations/response';
+import {
+  FormatterOptions,
+  getFormatter
+} from '../annotations/formatter';
 import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
+import { ResponseFormatter } from '../formatter';
 import { Transform, AnyTransform } from '../transformer';
 import { ResolveState } from '../state';
 import {
@@ -57,8 +62,15 @@ import * as HTTP_ERRORS from '../errors/http';
 
 
 /** Interfaces */
+export interface ContextFormatter {
+  formatter: ResponseFormatter;
+  accepts:   string[];
+  type:      string;
+}
+
 export interface KoaOctavo {
   resolvedStates:    Map<Type<ResolveState<any>>, any>;
+  formatters:        ContextFormatter[];
   transformer:       AnyTransform | null;
 }
 
@@ -144,6 +156,35 @@ export class Kernel {
     }
 
     /**
+     * Formatter
+     */
+    this._koa.use(async (ctx, next) => {
+      await next();
+
+      const { formatters } = ctx.$octavo;
+
+      // Backwards, because formatters are add by append
+      for (let i = formatters.length - 1; i >= 0; i--) {
+        const { formatter, accepts, type } = formatters[i];
+
+        if (!ctx.accepts(accepts)) {
+          continue;
+        }
+
+        ctx.type = type;
+        ctx.body = formatter.format(ctx.body);
+        return;
+      }
+
+      /**
+       * @todo(SuperPaintman):
+       *    Add support for `Not Acceptable` error, if the formatter isn't
+       *    found.
+       */
+      // throw new NotAcceptable();
+    });
+
+    /**
      * Transformer
      */
     this._koa.use(async (ctx, next) => {
@@ -161,11 +202,13 @@ export class Kernel {
         ctx.body = (ctx.$octavo.transformer as Transform).success(ctx.body);
       } catch (err) {
         if (ctx.$octavo.transformer === null) {
-          throw err;
+          ctx.body = err.message; // throw err;
+          return;
         }
 
         if ((ctx.$octavo.transformer as Transform).error === undefined) {
-          throw err;
+          ctx.body = err.message; // throw err;
+          return;
         }
 
         ctx.body = (ctx.$octavo.transformer as Transform).error(err);
@@ -311,6 +354,7 @@ export class Kernel {
   private _extendKoaContext(context: Koa.Context): void {
     const value: KoaOctavo = {
       resolvedStates:    new Map(),
+      formatters:        [],
       transformer:       null
     };
 
@@ -326,9 +370,13 @@ export class Kernel {
   }
 
   private _scopeToRouter(scope: Scope): Router {
-    const { path, stack, handler, middlewares, policies, Transformer } = scope;
+    const { path, stack, handler, middlewares, policies, formatters, Transformer } = scope;
 
     const router = new Router();
+
+    if (formatters.length > 0) {
+      this._addFormatters(router, path, formatters);
+    }
 
     if (Transformer !== undefined) {
       this._addTransformer(router, path, Transformer);
@@ -724,6 +772,22 @@ export class Kernel {
 
     router.use(path, async (ctx, next) => {
       ctx.$octavo.transformer = transformer;
+
+      await next();
+    });
+  }
+
+  private _addFormatters<T extends ResponseFormatter>(
+    router:      Router,
+    path:        string,
+    Formatters:  Type<T>[]
+  ) {
+    const formatters = Formatters.map((Formatter) => Object.assign(getFormatter(Formatter), {
+      formatter: this._injector.load(Formatter).get(Formatter)
+    }));
+
+    router.use(path, async (ctx, next) => {
+      ctx.$octavo.formatters = ctx.$octavo.formatters.concat(formatters);
 
       await next();
     });

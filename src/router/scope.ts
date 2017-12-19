@@ -4,6 +4,7 @@ import { Type } from '../utils/type';
 import { ControllerHandler } from '../controller';
 import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
+import { ResponseFormatter } from '../formatter';
 import { AnyTransform } from '../transformer';
 
 
@@ -40,9 +41,10 @@ export class Scope {
   path:         string;
   handler?:     Handler<any>;
   Transformer?: Type<AnyTransform>;
-  middlewares:  Type<MiddlewareExec>[] = [];
-  policies:     Type<PolicyExec>[]     = [];
-  stack:        Scope[]                = [];
+  formatters:   Type<ResponseFormatter>[] = [];
+  middlewares:  Type<MiddlewareExec>[]    = [];
+  policies:     Type<PolicyExec>[]        = [];
+  stack:        Scope[]                   = [];
 
   constructor(
     path: string
@@ -70,6 +72,14 @@ export class Scope {
     Transformer: Type<T>
   ): this {
     this.Transformer = Transformer;
+
+    return this;
+  }
+
+  addFormatter<T extends ResponseFormatter>(
+    Formatter: Type<T>
+  ): this {
+    this.formatters.push(Formatter);
 
     return this;
   }
