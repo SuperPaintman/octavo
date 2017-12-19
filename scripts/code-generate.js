@@ -22,6 +22,8 @@ const UNPACK_DIRECTIVE       = '@unpack'
 const REMOVE_DIRECTIVE_OPEN  = '@remove'
 const REMOVE_DIRECTIVE_CLOSE = '/remove'
 
+const MACRO_PATH = path.join(__dirname, '../macro');
+
 const GITIGNORE_PATH = path.join(__dirname, '../.gitignore');
 
 const GITIGNORE_DIRECTIVE_OPEN  = '#code-generation-start';
@@ -63,6 +65,14 @@ const formatPath = _.flow([
 ]);
 
 const replaceExt = (path) => path.replace(/\.__macro__\.ts$/, '.ts');
+
+function sandboxRequire(id) {
+  if (id.startsWith('%')) {
+    return require(path.join(MACRO_PATH, id.slice(1)));
+  }
+
+  return require(id);
+}
 
 
 /** Init */
@@ -190,7 +200,7 @@ function evalScripts(template, scripts) {
       exports,
       module,
       console,
-      require,
+      require:     sandboxRequire,
       __dirname:   path.normalize(template.pathinfo.dir),
       __filename:  path.normalize(template.sourceAbs)
     };
