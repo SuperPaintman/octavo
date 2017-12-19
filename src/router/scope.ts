@@ -6,6 +6,7 @@ import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
 import { ResponseFormatter } from '../formatter';
 import { AnyTransform } from '../transformer';
+import { ErrorInterceptorHandler } from '../error-interceptor';
 
 
 /* Interfaces */
@@ -38,13 +39,14 @@ function normalizePath(path: string): string {
 
 
 export class Scope {
-  path:         string;
-  handler?:     Handler<any>;
-  Transformer?: Type<AnyTransform>;
-  formatters:   Type<ResponseFormatter>[] = [];
-  middlewares:  Type<MiddlewareExec>[]    = [];
-  policies:     Type<PolicyExec>[]        = [];
-  stack:        Scope[]                   = [];
+  path:              string;
+  handler?:          Handler<any>;
+  errorInterceptors: Type<ErrorInterceptorHandler>[] = [];
+  Transformer?:      Type<AnyTransform>;
+  formatters:        Type<ResponseFormatter>[]       = [];
+  middlewares:       Type<MiddlewareExec>[]          = [];
+  policies:          Type<PolicyExec>[]              = [];
+  stack:             Scope[]                         = [];
 
   constructor(
     path: string
@@ -72,6 +74,14 @@ export class Scope {
     Transformer: Type<T>
   ): this {
     this.Transformer = Transformer;
+
+    return this;
+  }
+
+  addErrorInterceptor<T extends ErrorInterceptorHandler>(
+    ErrorInterceptor: Type<T>
+  ) {
+    this.errorInterceptors.push(ErrorInterceptor);
 
     return this;
   }

@@ -51,6 +51,9 @@ import { ResponseFormatter } from '../formatter';
 import { Transform, AnyTransform } from '../transformer';
 import { ResolveState } from '../state';
 import {
+  ErrorInterceptorHandler
+} from '../error-interceptor';
+import {
   HttpError,
   InternalServerError,
   NotFound
@@ -72,6 +75,7 @@ export interface KoaOctavo {
   resolvedStates:    Map<Type<ResolveState<any>>, any>;
   formatters:        ContextFormatter[];
   transformer:       AnyTransform | null;
+  errorInterceptors: ErrorInterceptorHandler[];
 }
 
 declare module 'koa' {
@@ -216,16 +220,58 @@ export class Kernel {
     });
 
     /**
-     * Status fixer. It's necessary, because without it status stays
-     * `404`, `405` or `501`, before the error handler intercepts it.
+     * Final error interceptor, because user's intercepter can throws an JS
+     * error.
+     *
+     * Also it sets status.
      */
     this._koa.use(async (ctx, next) => {
       try {
         await next();
       } catch (err) {
-        ctx.status = err instanceof HttpError
-                   ? err.status
-                   : 500;
+        if (err instanceof HttpError) {
+          ctx.status = err.status;
+          throw err;
+        }
+
+        ctx.status = 500;
+        throw new InternalServerError();
+      }
+    });
+
+    /**
+     * ErrorInterceptor
+     */
+    this._koa.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err) {
+        if (err instanceof HttpError) {
+          throw err;
+        }
+
+        const { errorInterceptors } = ctx.$octavo;
+
+        // Backwards, because interceptors are add by `.push()`
+        for (let i = errorInterceptors.length - 1; i >= 0; i--) {
+          const errorInterceptor = errorInterceptors[i];
+
+
+          const isIt = errorInterceptor.check !== undefined
+                    && errorInterceptor.check(err)
+                    || true
+
+          if (!isIt) {
+            continue;
+          }
+
+          if (errorInterceptor.report !== undefined) {
+            await errorInterceptor.report(err);
+          }
+
+          await errorInterceptor.handle(err);
+          return;
+        }
 
         throw err;
       }
@@ -355,7 +401,8 @@ export class Kernel {
     const value: KoaOctavo = {
       resolvedStates:    new Map(),
       formatters:        [],
-      transformer:       null
+      transformer:       null,
+      errorInterceptors: []
     };
 
     Object.defineProperties(context, {
@@ -370,9 +417,13 @@ export class Kernel {
   }
 
   private _scopeToRouter(scope: Scope): Router {
-    const { path, stack, handler, middlewares, policies, formatters, Transformer } = scope;
+    const { path, stack, handler, middlewares, policies, formatters, Transformer, errorInterceptors } = scope;
 
     const router = new Router();
+
+    if (errorInterceptors.length > 0) {
+      this._addErrorInterceptors(router, path, errorInterceptors);
+    }
 
     if (formatters.length > 0) {
       this._addFormatters(router, path, formatters);
@@ -788,6 +839,23 @@ export class Kernel {
 
     router.use(path, async (ctx, next) => {
       ctx.$octavo.formatters = ctx.$octavo.formatters.concat(formatters);
+
+      await next();
+    });
+  }
+
+  private _addErrorInterceptors<T extends ErrorInterceptorHandler>(
+    router:           Router,
+    path:             string,
+    ErrorInterceptors: Type<T>[]
+  ) {
+    const errorInterceptors = ErrorInterceptors.map((ErrorInterceptor) => (
+      this._injector.load(ErrorInterceptor).get(ErrorInterceptor)
+    ));
+
+
+    router.use(path, async (ctx, next) => {
+      ctx.$octavo.errorInterceptors = ctx.$octavo.errorInterceptors.concat(errorInterceptors);
 
       await next();
     });

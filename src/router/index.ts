@@ -12,6 +12,7 @@ import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
 import { ResponseFormatter } from '../formatter';
 import { AnyTransform } from '../transformer';
+import { ErrorInterceptorHandler } from '../error-interceptor';
 
 
 /** Interfaces */
@@ -20,6 +21,7 @@ export type Resource<T> = {
 }
 
 export interface ScopeOptions {
+  errorInterceptors?: Type<ErrorInterceptorHandler>[];
   transformer?: Type<AnyTransform>;
   formatters?: Type<ResponseFormatter>[];
   middlewares?: Type<MiddlewareExec>[];
@@ -98,6 +100,12 @@ function applyScopeOptions(
 ): void {
   if (options.transformer !== undefined) {
     scope.setTransformer(options.transformer);
+  }
+
+  if (options.errorInterceptors !== undefined && options.errorInterceptors.length > 0) {
+    _.forEach(options.errorInterceptors, (errorInterceptor) => {
+      scope.addErrorInterceptor(errorInterceptor);
+    });
   }
 
   if (options.formatters !== undefined && options.formatters.length > 0) {

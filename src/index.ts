@@ -28,6 +28,9 @@ export { ResolveState } from './state';
 // Formatter
 export { ResponseFormatter } from './formatter';
 
+// Error Interceptor
+export { ErrorInterceptorHandler } from './error-interceptor'
+
 // Annotations
 export { Application } from './annotations/application';
 export { Controller } from './annotations/controller';
@@ -36,6 +39,7 @@ export { Policy } from './annotations/policy';
 export { State } from './annotations/state';
 export { Formatter } from './annotations/formatter';
 export { Transformer } from './annotations/transformer';
+export { ErrorInterceptor } from './annotations/error-interceptor';
 export { Request } from './annotations/request';
 export { Response } from './annotations/response';
 export { Service, Factory, Provider, Inject } from './annotations/di';
