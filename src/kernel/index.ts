@@ -42,7 +42,7 @@ import {
   getResponse
 } from '../annotations/response';
 import {
-  FormatterOptions,
+  FormatterMetadata,
   getFormatter
 } from '../annotations/formatter';
 import { MiddlewareExec } from '../middleware';
@@ -68,10 +68,8 @@ import * as HTTP_ERRORS from '../errors/http';
 
 
 /** Interfaces */
-export interface ContextFormatter {
+export interface ContextFormatter extends FormatterMetadata {
   formatter: ResponseFormatter;
-  accepts:   string[];
-  type:      string;
 }
 
 export interface KoaOctavo {

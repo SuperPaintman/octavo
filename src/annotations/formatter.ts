@@ -17,6 +17,11 @@ import {
 
 
 /** Interfaces */
+export interface FormatterMetadata {
+  accepts: string[];
+  type:    string;
+}
+
 export interface FormatterOptions {
   accepts: string[];
   type:    string;
@@ -27,8 +32,8 @@ export interface FormatterAnnotation {
 }
 
 
-export const getFormatter = makeMetadataGetter<FormatterOptions | undefined>(METADATA_FORMATTER, () => undefined);
-export const setFormatter = makeMetadataSetter<FormatterOptions>(METADATA_FORMATTER);
+export const getFormatter = makeMetadataGetter<FormatterMetadata | undefined>(METADATA_FORMATTER, () => undefined);
+export const setFormatter = makeMetadataSetter<FormatterMetadata>(METADATA_FORMATTER);
 
 
 export const Formatter: FormatterAnnotation = makeClassAnnotation<Type<ResponseFormatter>>(
