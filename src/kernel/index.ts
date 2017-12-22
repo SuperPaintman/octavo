@@ -1,5 +1,7 @@
 'use strict';
 /** Imports */
+import * as http from 'http';
+
 import * as Koa from 'koa';
 import * as Router from 'koa-router';
 import * as bodyParser from 'koa-bodyparser';
@@ -105,6 +107,7 @@ declare module 'koa' {
 export class Kernel {
   private _app: OctavoApplication;
   private _koa = new Koa();
+  private _server: http.Server = http.createServer(this._koa.callback());
   private _defaultInjector = new Injector([
     Logger,
     HtmlViewEngine
@@ -120,6 +123,11 @@ export class Kernel {
   private _views = [process.cwd()];
   private _viewCache = true;
   private _viewEngines: { [ext: string]: ViewEngineRender } = { };
+
+  // Getters
+  get server(): http.Server {
+    return this._server;
+  }
 
   constructor(
     Application: Type<OctavoApplication>
@@ -406,7 +414,7 @@ export class Kernel {
     this._logger.debug('Application is starting');
 
     await new Promise((resolve, reject) => {
-      this._koa.listen(port, resolve);
+      this._server.listen(port, resolve);
     });
 
     this._logger.debug('Application has been started');
