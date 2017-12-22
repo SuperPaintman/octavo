@@ -607,6 +607,8 @@ export class Kernel {
 
       const validData = await this._validateResponseBody(data, resBodySchema);
 
+      ctx.status = status;
+
       if (view !== undefined && !!ctx.accepts('text/html')) {
         ctx.$octavo.isHtml = true;
 
