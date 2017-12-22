@@ -1,6 +1,6 @@
 'use strict';
 /** Imports */
-import { expect } from './helpers';
+import { expect } from '../helpers';
 
 import {
   o,
@@ -11,7 +11,7 @@ import {
   boolean,
   $slot,
   Schema
-} from '../schema';
+} from '../../schema';
 
 
 describe('Schema', () => {
