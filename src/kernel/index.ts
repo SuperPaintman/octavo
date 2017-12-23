@@ -7,6 +7,7 @@ import * as Router from 'koa-router';
 import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
 import * as _ from 'lodash';
+import * as methods from 'methods';
 import * as pathToRegExp from 'path-to-regexp';
 
 import { Injector } from '../di/injector';
@@ -392,7 +393,18 @@ export class Kernel {
     if (this._router !== undefined) {
       this._koa
         .use(this._router.routes())
-        .use(this._router.allowedMethods())
+        /**
+         * @todo(SuperPaintman):
+         *    Disable to support the hierarchical scope modificators
+         *    (transformers / formatters).
+         *
+         *    I replaced the `Router#use()` with `Router.register()` (with all
+         *    methods) for this. And that broke `#allowedMethods()` method,
+         *    because "#allowedMethods()" checks matched methods.
+         *
+         *    Need to solve this issue or rewrite the router.
+         */
+        // .use(this._router.allowedMethods())
         ;
     }
 
@@ -583,7 +595,7 @@ export class Kernel {
 
       router
         .use(path, childRouter.routes())
-        .use(path, childRouter.allowedMethods())
+        // .use(path, childRouter.allowedMethods())
         ;
     });
 
@@ -698,7 +710,7 @@ export class Kernel {
     );
 
 
-    router.use(path, async (ctx, next) => {
+    router.register(path, methods, async (ctx, next) => {
       const args = await this._resolveMiddlewareContextualInjections(
         ctxInjections,
         ctx,
@@ -710,6 +722,8 @@ export class Kernel {
       if (!hasNext) {
         await next();
       }
+    }, {
+      end: false
     });
   }
 
@@ -987,10 +1001,12 @@ export class Kernel {
     const transformer = this._injector.load(Transformer).get(Transformer);
 
 
-    router.use(path, async (ctx, next) => {
+    router.register(path, methods, async (ctx, next) => {
       ctx.$octavo.transformer = transformer;
 
       await next();
+    }, {
+      end: false
     });
   }
 
@@ -1003,10 +1019,12 @@ export class Kernel {
       formatter: this._injector.load(Formatter).get(Formatter)
     }));
 
-    router.use(path, async (ctx, next) => {
+    router.register(path, methods, async (ctx, next) => {
       ctx.$octavo.formatters = ctx.$octavo.formatters.concat(formatters);
 
       await next();
+    }, {
+      end: false
     });
   }
 
@@ -1020,10 +1038,12 @@ export class Kernel {
     ));
 
 
-    router.use(path, async (ctx, next) => {
+    router.register(path, methods, async (ctx, next) => {
       ctx.$octavo.errorInterceptors = ctx.$octavo.errorInterceptors.concat(errorInterceptors);
 
       await next();
+    }, {
+      end: false
     });
   }
 }
