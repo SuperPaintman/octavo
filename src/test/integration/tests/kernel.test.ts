@@ -24,7 +24,8 @@ describe('Kernel', () => {
         });
       });
 
-      describe('Method Not Allowed', () => {
+      // Temporarily disabled because it is not supported now
+      xdescribe('Method Not Allowed', () => {
         it('should throws the "Method Not Allowed" error if passed method is wrong', async () => {
           const res = await agent.post('/pure/ping');
 
@@ -237,6 +238,115 @@ describe('Kernel', () => {
             .to.have.status(500)
             .and.have.contentType('text/plain')
             .and.have.body('Internal Server Error');
+        });
+      });
+    });
+  });
+
+  describe('Transformers', () => {
+    describe('Scope with transformer', () => {
+      describe('Not Found', () => {
+        it('should throws a transformed "Not Found" error', async () => {
+          const res = await agent.get('/transformer/road-not-found');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'error',
+              error: {
+                name: 'NotFound',
+                message: 'Not Found'
+              }
+            });
+        });
+
+        it('should throws a transformed "Method Not Allowed" error even for very long pathes', async () => {
+          const res = await agent.get('/transformer/road/not/found/and/it/is/not/defined');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'error',
+              error: {
+                name: 'NotFound',
+                message: 'Not Found'
+              }
+            });
+        });
+      });
+
+      // Temporarily disabled because it is not supported now
+      xdescribe('Method Not Allowed', () => {
+        it('should throws a transformed "Method Not Allowed" error', async () => {
+          const res = await agent.post('/transformer/ping');
+
+          expect(res)
+            .to.have.status(405)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'error',
+              error: {
+                name: 'MethodNotAllowed',
+                message: 'Method Not Allowed'
+              }
+            });
+        });
+      });
+
+      describe('PingController', () => {
+        it('should returns a transformed response', async () => {
+          const res = await agent.get('/transformer/ping');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'success',
+              data: {
+                ping: 'pong'
+              }
+            });
+        });
+      });
+
+      describe('EchoController', () => {
+        it('should returns a valid response', async () => {
+          const res = await agent
+            .post('/transformer/echo')
+            .send({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            });
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'success',
+              data: {
+                message: 'Hello!',
+                author: 'SuperPaintman'
+              }
+            });
+        });
+      });
+
+      describe('BrokenController', () => {
+        it('should returns a transformed response', async () => {
+          const res = await agent.get('/transformer/broken');
+
+          expect(res)
+            .to.have.status(500)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              status: 'error',
+              error: {
+                name: 'InternalServerError',
+                message: 'Internal Server Error'
+              }
+            });
         });
       });
     });

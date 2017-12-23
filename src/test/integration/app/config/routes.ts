@@ -14,6 +14,8 @@ import { BrokenController } from '../controllers/broken.controller';
 import { FullpackResourceController } from '../controllers/fullpack-resource.controller';
 import { BooksController } from '../controllers/books.controller';
 
+import { ApiV1Transformer } from '../transformers/api-v1.transformer';
+
 export default scope('/', () => {
   scope('/pure', () => {
     get('/ping', PingController, 'index');
@@ -25,6 +27,16 @@ export default scope('/', () => {
     resource('/fullpack', FullpackResourceController);
 
     resource('/books', BooksController);
+
+    get('/broken', BrokenController, 'brokenMethod');
+  });
+
+  scope('/transformer', {
+    transformer: ApiV1Transformer
+  }, () => {
+    get('/ping', PingController, 'index');
+
+    post('/echo', EchoController, 'echo');
 
     get('/broken', BrokenController, 'brokenMethod');
   });
