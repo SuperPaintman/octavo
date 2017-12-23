@@ -1,6 +1,6 @@
 'use strict';
 /** Imports */
-import { expect } from '../helpers';
+import { expect } from './helpers';
 
 import { Type } from '../../utils/type';
 import { Service, Factory, Provider, Inject } from '../../annotations/di';

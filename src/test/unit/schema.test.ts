@@ -1,6 +1,6 @@
 'use strict';
 /** Imports */
-import { expect } from '../helpers';
+import { expect } from './helpers';
 
 import {
   o,
