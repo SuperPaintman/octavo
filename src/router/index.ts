@@ -235,13 +235,13 @@ export function resource<T>(
       }
 
       switch (method) {
-        case 'index':   return register('get',   200, '/',         Controller, key as any);
-        case 'new':     return register('get',   200, '/new',      Controller, key as any);
-        case 'show':    return register('get',   200, '/:id',      Controller, key as any);
-        case 'create':  return register('post',  201, '/',         Controller, key as any);
-        case 'edit':    return register('get',   200, '/:id/edit', Controller, key as any);
-        case 'update':  return register('patch', 200, '/:id',      Controller, key as any);
-        case 'destroy': return register('del',   200, '/:id',      Controller, key as any);
+        case 'index':   return register('get',    200, '/',         Controller, key as any);
+        case 'new':     return register('get',    200, '/new',      Controller, key as any);
+        case 'show':    return register('get',    200, '/:id',      Controller, key as any);
+        case 'create':  return register('post',   201, '/',         Controller, key as any);
+        case 'edit':    return register('get',    200, '/:id/edit', Controller, key as any);
+        case 'update':  return register('patch',  200, '/:id',      Controller, key as any);
+        case 'destroy': return register('delete', 200, '/:id',      Controller, key as any);
         default: throw new Error(`Unexpected resource method: ${method}`);
       }
     });
