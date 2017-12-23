@@ -23,6 +23,10 @@ export abstract class CommonContext {
     protected _koaCtx: Koa.Context
   ) { }
 
+  get ip(): string {
+    return this._koaCtx.ip;
+  }
+
   get method(): string {
     return this._koaCtx.method;
   }
