@@ -175,7 +175,7 @@ export class Schema {
   private _joiSchema: Joi.Schema = this._schemaToJoi(this._schema);
   private readonly _joivalidateOptions: Joi.ValidationOptions = {
     presence:      'required',
-    convert:       false,
+    convert:       true,
     abortEarly:    false,
     stripUnknown: {
       objects: true
