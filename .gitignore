@@ -10,6 +10,10 @@
 # Logs
 /*.log
 
+# Coverage
+/.nyc_output
+/coverage
+
 #code-generation-start
 /src/errors/http.ts
 /src/router/dsl.ts
