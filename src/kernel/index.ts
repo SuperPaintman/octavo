@@ -7,6 +7,7 @@ import * as Router from 'koa-router';
 import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
 import * as _ from 'lodash';
+import * as pathToRegExp from 'path-to-regexp';
 
 import { Injector } from '../di/injector';
 import { Logger } from '../services/logger';
@@ -505,6 +506,39 @@ export class Kernel {
 
   private _initRouter(scope: Scope) {
     this._router = this._scopeToRouter(scope);
+
+    /**
+     * @todo(SuperPaintman):
+     *    Now we have a problem with double (or multi) `/` in router layer's
+     *    path. For example: `/pure/books//`, or '///` instead of normal `/`.
+     *
+     *    This problem is reproduced if you put `/` scope in another `/` scope.
+     *    like this:
+     *
+     *    ```ts
+     *    scope('/', () => {
+     *      scope('/', () => {
+     *        scope('/', () => {
+     *          get('/ping', PingController, 'index'); // <= `///ping/` instead of `/ping`
+     *        });
+     *      });
+     *    });
+     *    ```
+     *
+     *    And this part eats extra `/` in path. Yes, this is sick, but now it
+     *    works fine.
+     *
+     *    Need to find a more appropriate solution for this.
+     */
+    this._router.stack
+      .forEach((layer) => {
+        layer.path = layer.path
+          .replace(/\/{2,}/g, '/') // eat multi `/`
+          .replace(/(.)\/$/, '$1') // eat `/` at the end
+          ;
+
+        layer.regexp = pathToRegExp(layer.path, layer.paramNames as any, layer.opts);
+      });
   }
 
   private _scopeToRouter(scope: Scope): Router {
