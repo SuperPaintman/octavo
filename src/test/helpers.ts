@@ -6,11 +6,28 @@ process.env.NODE_ENV = 'test';
 
 import { inspect } from 'util';
 
+import * as _ from 'lodash';
 import * as chai from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
+import { Response } from 'supertest-as-promised';
+import * as superagent from 'superagent';
+import * as mime from 'mime-types';
 
+const { Response: SuperagentResponse } = require('superagent');
 const { color } = require('mocha/lib/reporters/base');
 
+
+
+/** Interfaces */
+declare global {
+  namespace Chai {
+    interface Assertion {
+      status(value: number): Assertion;
+      contentType(value: string): Assertion;
+      body(value: any): Assertion;
+    }
+  }
+}
 
 /** Init */
 let haveUnhandledRejection = false;
@@ -29,8 +46,56 @@ process.on('exit', (code) => {
 });
 
 
-
+/** Chai */
 chai.use(chaiAsPromised);
+
+chai.use(function superagent({ assert, Assertion }, utils) {
+  const assertIsResponse = (response: any) => {
+    assert.instanceOf(response, SuperagentResponse);
+  };
+
+  Assertion.addMethod('status', <Chai.Assertion['status']>function status(this: any, expectedStatusCode) {
+    const response: Response = this._obj;
+    assertIsResponse(response);
+
+    const statusCode = response.status;
+
+    this.assert(
+      statusCode === expectedStatusCode,
+      'expected Response to have status code #{exp} but got #{act}',
+      'expected Response to not have status code #{act}',
+      expectedStatusCode,
+      statusCode
+    );
+  });
+
+  Assertion.addMethod('contentType', <Chai.Assertion['contentType']>function status(this: any, expectedContentType) {
+    const response: Response = this._obj;
+    assertIsResponse(response);
+
+    const contentType = response.header['content-type'];
+
+    this.assert(
+      contentType === mime.contentType(expectedContentType),
+      'expected Response to have content type #{exp} but got #{act}',
+      'expected Response to not have content type #{act}',
+      expectedContentType,
+      contentType
+    );
+  });
+
+  Assertion.addMethod('body', <Chai.Assertion['body']>function status(this: any, expectedBody) {
+    const response: Response = this._obj;
+    assertIsResponse(response);
+
+    if (_.isObject(expectedBody)) {
+      assert.deepEqual(response.body, expectedBody);
+    } else {
+      assert.equal(response.text, expectedBody);
+    }
+  });
+});
+
 
 export const { expect } = chai;
 
