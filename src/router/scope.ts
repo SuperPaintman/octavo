@@ -14,7 +14,7 @@ export interface Handler<T> {
   method:     string;
   status:     number;
   Controller: Type<T>;
-  key:        keyof T & ControllerHandler
+  key:        keyof T & ControllerHandler;
 }
 
 

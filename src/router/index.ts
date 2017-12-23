@@ -17,7 +17,7 @@ import { ErrorInterceptorHandler } from '../error-interceptor';
 
 /** Interfaces */
 export type Resource<T> = {
-  [key in keyof ResourceController]: keyof T & ControllerHandler;
+  [key in keyof ResourceController]: keyof T; // & ControllerHandler;
 }
 
 export interface ScopeOptions {
@@ -32,13 +32,13 @@ export interface HttpMethod {
   <T>(
     path:       string,
     Controller: Type<T>,
-    key:        keyof T & ControllerHandler
+    key:        keyof T // & ControllerHandler
   ): Scope;
   <T>(
     path:       string,
     options:    ScopeOptions,
     Controller: Type<T>,
-    key:        keyof T & ControllerHandler
+    key:        keyof T // & ControllerHandler
   ): Scope;
 }
 
