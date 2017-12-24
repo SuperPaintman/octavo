@@ -35,9 +35,9 @@ export abstract class CommonContext {
     return this._koaCtx.url;
   }
 
-  // get status(): number {
-  //   return this._koaCtx.status;
-  // }
+  get status(): number {
+    return this._koaCtx.status;
+  }
 }
 
 
