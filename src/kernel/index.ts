@@ -596,6 +596,30 @@ export class Kernel {
       });
     }
 
+    /**
+     * @todo(SuperPaintman):
+     *    This middleware is needed to fix the status (if a error was thrown
+     *    in Controller or Policy) and convert "404" into `NotFound` error,
+     *    before it passes back to `Middleware`.
+     *
+     *    Not the best practice. Need to replace it in the new router.
+     */
+    router.use(path, async (ctx, next) => {
+      try {
+        await next();
+
+        if (ctx.status === 404) {
+          throw new NotFound();
+        }
+      } catch (err) {
+        ctx.status = err instanceof HttpError
+                   ? err.status
+                   : 500;
+
+        throw err;
+      }
+    });
+
     if (policies.length > 0) {
       _.forEach(policies, (policy) => {
         this._addPolicy(router, path, policy);
