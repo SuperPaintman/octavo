@@ -15,3 +15,4 @@ export const METADATA_VIEW                   = 'octavo:view';
 export const METADATA_PROVIDERS              = 'octavo:providers';
 export const METADATA_VIEW_ENGINE            = 'octavo:viewengine';
 export const METADATA_FORMATTER              = 'octavo:formatter';
+export const METADATA_DESCRIPTION            = 'octavo:description';
