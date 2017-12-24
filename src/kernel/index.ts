@@ -67,6 +67,7 @@ import {
 import { MiddlewareExec } from '../middleware';
 import { PolicyExec } from '../policy';
 import { ResponseFormatter } from '../formatter';
+import { JSONFormatter } from '../formatter/json.formatter';
 import { Transform, AnyTransform } from '../transformer';
 import { ResolveState } from '../state';
 import {
@@ -94,7 +95,10 @@ export interface ContextFormatter extends FormatterMetadata {
 export interface KoaOctavo {
   isHtml:            boolean;
   resolvedStates:    Map<Type<ResolveState<any>>, any>;
-  formatters:        ContextFormatter[];
+  // formatters:        ContextFormatter[];
+  formatters: {
+    [type: string]: ContextFormatter;
+  }
   transformer:       AnyTransform | null;
   errorInterceptors: ErrorInterceptorHandler[];
 }
@@ -198,6 +202,7 @@ export class Kernel {
      * Add defaults (Error Interceptor / Formatters / Middlewares / etc.)
      */
     this._addDefaultUnexpectedErrorInterceptor();
+    this._addDefaultJsonFormatter();
 
     /**
      * Formatter
@@ -211,9 +216,12 @@ export class Kernel {
         return;
       }
 
-      // Backwards, because formatters are add by append
-      for (let i = formatters.length - 1; i >= 0; i--) {
-        const { formatter, accepts, type } = formatters[i];
+      if (!_.isObject(ctx.body)) {
+        return;
+      }
+
+      for (const key in formatters) {
+        const { formatter, accepts, type } = formatters[key];
 
         if (!ctx.accepts(accepts)) {
           continue;
@@ -494,7 +502,7 @@ export class Kernel {
     const value: KoaOctavo = {
       isHtml:            false,
       resolvedStates:    new Map(),
-      formatters:        [],
+      formatters:        {},
       transformer:       null,
       errorInterceptors: []
     };
@@ -507,10 +515,22 @@ export class Kernel {
   }
 
   private _addDefaultUnexpectedErrorInterceptor(): void {
-    const unexpectedErrorInterceptor: any = this._injector.load(UnexpectedErrorInterceptor).get(UnexpectedErrorInterceptor);
+    const unexpectedErrorInterceptor = this._injector.load(UnexpectedErrorInterceptor).get(UnexpectedErrorInterceptor);
 
     this._koa.use(async (ctx, next) => {
       ctx.$octavo.errorInterceptors.push(unexpectedErrorInterceptor);
+
+      await next();
+    });
+  }
+
+  private _addDefaultJsonFormatter(): void {
+    const jsonFormatter = Object.assign(getFormatter(JSONFormatter), {
+      formatter: this._injector.load(JSONFormatter).get(JSONFormatter)
+    });
+
+    this._koa.use(async (ctx, next) => {
+      ctx.$octavo.formatters[jsonFormatter.type] = jsonFormatter;
 
       await next();
     });
@@ -1015,12 +1035,17 @@ export class Kernel {
     path:        string,
     Formatters:  Type<T>[]
   ) {
-    const formatters = Formatters.map((Formatter) => Object.assign(getFormatter(Formatter), {
-      formatter: this._injector.load(Formatter).get(Formatter)
-    }));
+    const formatters = Formatters
+      .map((Formatter) => Object.assign(getFormatter(Formatter), {
+        formatter: this._injector.load(Formatter).get(Formatter)
+      }))
+      .reduce((res, formatter) => ({
+        ...res,
+        [formatter.type]: formatter
+      }), { } as KoaOctavo['formatters']);
 
     router.register(path, methods, async (ctx, next) => {
-      ctx.$octavo.formatters = ctx.$octavo.formatters.concat(formatters);
+      _.assign(ctx.$octavo.formatters, formatters);
 
       await next();
     }, {

@@ -27,6 +27,7 @@ export { ResolveState } from './state';
 
 // Formatter
 export { ResponseFormatter } from './formatter';
+export { JSONFormatter } from './formatter/json.formatter';
 
 // Error Interceptor
 export { ErrorInterceptorHandler } from './error-interceptor'
