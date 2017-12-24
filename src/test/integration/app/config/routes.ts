@@ -14,6 +14,9 @@ import { BrokenController } from '../controllers/broken.controller';
 import { FullpackResourceController } from '../controllers/fullpack-resource.controller';
 import { BooksController } from '../controllers/books.controller';
 
+import { TestHeaderMiddleware } from '../middlewares/test-header.middleware';
+import { AfterResponseMiddleware } from '../middlewares/after-response.middleware';
+
 import { ApiV1Transformer } from '../transformers/api-v1.transformer';
 
 import { MySuperTurboJsonFormatter } from '../formatters/json.formatter';
@@ -63,5 +66,29 @@ export default scope('/', () => {
     ]
   }, () => {
     get('/ping', PingController, 'index');
+  });
+
+  scope('/middleware', {
+    middlewares: [
+      TestHeaderMiddleware
+    ]
+  }, () => {
+    get('/ping', PingController, 'index');
+
+    post('/echo', EchoController, 'echo');
+
+    get('/broken', BrokenController, 'brokenMethod');
+  });
+
+  scope('/middleware-after-response', {
+    middlewares: [
+      AfterResponseMiddleware
+    ]
+  }, () => {
+    get('/ping', PingController, 'index');
+
+    post('/echo', EchoController, 'echo');
+
+    get('/broken', BrokenController, 'brokenMethod');
   });
 });

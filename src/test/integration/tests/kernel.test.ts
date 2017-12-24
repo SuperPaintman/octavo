@@ -472,4 +472,120 @@ describe('Kernel', () => {
       });
     });
   });
+
+  describe('Middlewares', () => {
+    describe('Scope with dummy header middleware', () => {
+      describe('Not Found', () => {
+        it('should set response header', async () => {
+          const res = await agent.get('/middleware/road-not-found');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('text/plain')
+            .and.have.header('Test-Header', 'Hello There');
+        });
+      });
+
+      describe('PingController', () => {
+        it('should set response header', async () => {
+          const res = await agent.get('/middleware/ping');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({ ping: 'pong' })
+            .and.have.header('Test-Header', 'Hello There');
+        });
+      });
+
+      describe('EchoController', () => {
+        it('should set response header', async () => {
+          const res = await agent
+            .post('/middleware/echo')
+            .send({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            });
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            })
+            .and.have.header('Test-Header', 'Hello There');
+        });
+      });
+
+      describe('BrokenController', () => {
+        it('should set response header', async () => {
+          const res = await agent.get('/middleware/broken');
+
+          expect(res)
+            .to.have.status(500)
+            .and.have.contentType('text/plain')
+            .and.have.body('Internal Server Error')
+            .and.have.header('Test-Header', 'Hello There');
+        });
+      });
+    });
+
+    describe('Scope with middleware after response', () => {
+      describe('Not Found', () => {
+        it('should set header with info about request in header', async () => {
+          const res = await agent.get('/middleware-after-response/road-not-found');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('text/plain')
+            .and.have.header('After-Response', 'GET:/middleware-after-response/road-not-found:error:404');
+        });
+      });
+
+      describe('PingController', () => {
+        it('should set header with info about request in header', async () => {
+          const res = await agent.get('/middleware-after-response/ping');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({ ping: 'pong' })
+            .and.have.header('After-Response', 'GET:/middleware-after-response/ping:success:200');
+        });
+      });
+
+      describe('EchoController', () => {
+        it('should set header with info about request in header', async () => {
+          const res = await agent
+            .post('/middleware-after-response/echo')
+            .send({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            });
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            })
+            .and.have.header('After-Response', 'POST:/middleware-after-response/echo:success:200');
+        });
+      });
+
+      describe('BrokenController', () => {
+        it('should set header with info about request in header', async () => {
+          const res = await agent.get('/middleware-after-response/broken');
+
+          expect(res)
+            .to.have.status(500)
+            .and.have.contentType('text/plain')
+            .and.have.body('Internal Server Error')
+            .and.have.header('After-Response', 'GET:/middleware-after-response/broken:error:500');
+        });
+      });
+    });
+  });
 });

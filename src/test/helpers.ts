@@ -25,6 +25,7 @@ declare global {
       status(value: number): Assertion;
       contentType(value: string): Assertion;
       body(value: any): Assertion;
+      header(name: string, value: string): Assertion;
     }
   }
 }
@@ -94,6 +95,26 @@ chai.use(function superagent({ assert, Assertion }, utils) {
       assert.equal(response.text, expectedBody);
     }
   });
+
+  Assertion.addMethod('header', <Chai.Assertion['header']>function status(this: any, expectedName, expectedValue) {
+    const response: Response = this._obj;
+    assertIsResponse(response);
+
+    const headerName = expectedName.toLowerCase();
+
+    assert.property(response.header, headerName);
+
+    const header = response.header[headerName];
+
+    this.assert(
+      header === expectedValue,
+      `expected Response to have '${expectedName}' header with value #{exp} but got #{act}`,
+      `expected Response to not '${expectedName}' header with value #{act}`,
+      expectedValue,
+      header
+    );
+  });
+
 });
 
 
