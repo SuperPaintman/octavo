@@ -16,6 +16,10 @@ import { BooksController } from '../controllers/books.controller';
 
 import { ApiV1Transformer } from '../transformers/api-v1.transformer';
 
+import { MySuperTurboJsonFormatter } from '../formatters/json.formatter';
+import { YamlFormatter } from '../formatters/yaml.formatter';
+
+
 export default scope('/', () => {
   scope('/pure', () => {
     get('/ping', PingController, 'index');
@@ -39,5 +43,25 @@ export default scope('/', () => {
     post('/echo', EchoController, 'echo');
 
     get('/broken', BrokenController, 'brokenMethod');
+  });
+
+  scope('/formatter', {
+    formatters: [
+      YamlFormatter
+    ]
+  }, () => {
+    get('/ping', PingController, 'index');
+
+    post('/echo', EchoController, 'echo');
+
+    get('/broken', BrokenController, 'brokenMethod');
+  });
+
+  scope('/overridden-json-formatter', {
+    formatters: [
+      MySuperTurboJsonFormatter
+    ]
+  }, () => {
+    get('/ping', PingController, 'index');
   });
 });

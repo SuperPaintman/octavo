@@ -351,4 +351,125 @@ describe('Kernel', () => {
       });
     });
   });
+
+  describe('Formatters', () => {
+    describe('Scope with YAML formatter', () => {
+      describe('Not Found', () => {
+        it('should ignores a formatted if error is a plain text', async () => {
+          const res = await agent
+            .get('/formatter/road-not-found')
+            .set('Accept', 'application/x-yaml');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('text/plain')
+            .and.have.body('Not Found');
+        });
+
+        it('should ignores a formatted if error is a plain text even for very long pathes', async () => {
+          const res = await agent
+            .get('/formatter/road/not/found/and/it/is/not/defined')
+            .set('Accept', 'application/x-yaml');
+
+          expect(res)
+            .to.have.status(404)
+            .and.have.contentType('text/plain')
+            .and.have.body('Not Found');
+        });
+      });
+
+      describe('PingController', () => {
+        it('should returns a formatted response', async () => {
+          const res = await agent
+            .get('/formatter/ping')
+            .set('Accept', 'application/x-yaml');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/x-yaml')
+            .and.have.body('ping: pong\n');
+        });
+      });
+
+      describe('EchoController', () => {
+        it('should returns a formatted response', async () => {
+          const res = await agent
+            .post('/formatter/echo')
+            .send({
+              message: 'Hello!',
+              author: 'SuperPaintman'
+            })
+            .set('Accept', 'application/x-yaml');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/x-yaml')
+            .and.have.body([
+              'message: Hello!',
+              'author: SuperPaintman',
+              ''
+            ].join('\n'));
+        });
+      });
+
+      describe('BrokenController', () => {
+        it('should ignores a formatted if error is a plain text', async () => {
+          const res = await agent
+            .get('/formatter/broken')
+            .set('Accept', 'application/x-yaml');
+
+          expect(res)
+            .to.have.status(500)
+            .and.have.contentType('text/plain')
+            .and.have.body('Internal Server Error');
+        });
+      });
+
+      describe('Multiple formatters', () => {
+        it('should formats response correctly for JSON and YAML "Access" headers', async () => {
+          expect(
+            await agent
+              .get('/formatter/ping')
+              .set('Accept', 'application/json')
+          )
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({ ping: 'pong' });
+
+          expect(
+            await agent
+              .get('/formatter/ping')
+              .set('Accept', 'application/x-yaml')
+          )
+            .to.have.status(200)
+            .and.have.contentType('application/x-yaml')
+            .and.have.body('ping: pong\n');
+        });
+
+        it('should formats response as JSON if "Access" headers in not set', async () => {
+          const res = await agent.get('/formatter/ping');
+
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/json')
+            .and.have.body({ ping: 'pong' });
+        });
+      });
+    });
+
+    describe('Scope with overridden JSON fromatter', () => {
+      it('should override default JSON formatter', async () => {
+        const res = await agent.get('/overridden-json-formatter/ping');
+
+        expect(res)
+          .to.have.status(200)
+          .and.have.contentType('application/json')
+          .and.have.body([
+            '{',
+            '\t\t\t\t"ping": "pong"',
+            '}'
+          ].join('\n'));
+      });
+    });
+  });
 });
