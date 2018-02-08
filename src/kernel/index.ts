@@ -220,10 +220,10 @@ export class Kernel {
         return;
       }
 
-      for (const key in formatters) {
-        const { formatter, accepts, type } = formatters[key];
+      for (const accept in formatters) {
+        const { formatter, type } = formatters[accept];
 
-        if (!ctx.accepts(accepts)) {
+        if (!ctx.accepts(accept)) {
           continue;
         }
 
@@ -530,7 +530,10 @@ export class Kernel {
     });
 
     this._koa.use(async (ctx, next) => {
-      ctx.$octavo.formatters[jsonFormatter.type] = jsonFormatter;
+      for (const accepts of jsonFormatter.accepts) {
+        ctx.$octavo.formatters[accepts] = jsonFormatter;
+      }
+      // ctx.$octavo.formatters[jsonFormatter.type] = jsonFormatter;
 
       await next();
     });
@@ -1065,7 +1068,8 @@ export class Kernel {
       }))
       .reduce((res, formatter) => ({
         ...res,
-        [formatter.type]: formatter
+        ..._.reduce(formatter.accepts, (res, accept) => ({ ...res, [accept]: formatter }), { })
+        // [formatter.type]: formatter
       }), { } as KoaOctavo['formatters']);
 
     router.register(path, methods, async (ctx, next) => {

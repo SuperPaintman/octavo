@@ -6,7 +6,7 @@ import * as yaml from 'js-yaml';
 
 
 @Formatter({
-  accepts: ['application/x-yaml'],
+  accepts: ['application/x-yaml', 'text/x-custom-accept'],
   type: 'application/x-yaml'
 })
 export class YamlFormatter implements ResponseFormatter {

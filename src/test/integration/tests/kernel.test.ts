@@ -471,6 +471,33 @@ describe('Kernel', () => {
           ].join('\n'));
       });
     });
+
+    describe('Formatter with multi accepts', () => {
+      it('should works', async () => {
+        const resYaml = await agent
+          .get('/formatter/ping')
+          .set('Accept', 'application/x-yaml');
+
+        const resYamlAlternative = await agent
+          .get('/formatter/ping')
+          .set('Accept', 'text/x-custom-accept');
+
+        const resJson = await agent
+          .get('/formatter/ping');
+
+        for (const res of [resYaml, resYamlAlternative]) {
+          expect(res)
+            .to.have.status(200)
+            .and.have.contentType('application/x-yaml')
+            .and.have.body('ping: pong\n');
+        }
+
+        expect(resJson)
+          .to.have.status(200)
+          .and.have.contentType('application/json')
+          .and.have.body('{"ping":"pong"}');
+      });
+    });
   });
 
   describe('Middlewares', () => {
