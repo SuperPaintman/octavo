@@ -29,7 +29,7 @@
 <!--
 
 - [SuperPaintman](https://github.com/SuperPaintman) Aleksandr Krivoshchekov - Founder of octavo, maintainer
-- [Isauricus](https://vk.com/isauricus) Artem Kvashnin - Logo creator
+- [Isauricus](https://vk.com/isauricus) Artem Kvashnin - Creator of the logo
 
 -->
 
@@ -47,8 +47,8 @@
       <td align="center" valign="top">
         <img width="150" height="150" src="https://pp.userapi.com/c841438/v841438501/56c64/pebiFWE710w.jpg">
         <br>
-        <a href="https://vk.com/isauricus">Artem Kvashnin (isauricus)</a>
-        <p>Logo creator</p>
+        <a href="https://vk.com/isauricus">Artem Kvashnin (Isauricus)</a>
+        <p>Creator of the logo</p>
       </td>
     </tr>
   </tbody>
