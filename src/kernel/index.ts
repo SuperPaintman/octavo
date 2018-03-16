@@ -314,8 +314,8 @@ export class Kernel {
 
 
           const isIt = errorInterceptor.check !== undefined
-                    && errorInterceptor.check(err)
-                    || true
+                     ? errorInterceptor.check(err)
+                     : true;
 
           if (!isIt) {
             continue;
