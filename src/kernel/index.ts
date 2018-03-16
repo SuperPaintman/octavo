@@ -308,7 +308,7 @@ export class Kernel {
 
         const { errorInterceptors } = ctx.$octavo;
 
-        // Backwards, because interceptors are add by `.push()`
+        // Backward, because interceptors are added by `.push()`
         for (let i = errorInterceptors.length - 1; i >= 0; i--) {
           const errorInterceptor = errorInterceptors[i];
 
