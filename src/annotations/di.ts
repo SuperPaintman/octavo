@@ -14,7 +14,7 @@ import {
   getDesignType,
   getPropertyInjections,
   setPropertyInjections,
-  MISSED_INJECTION
+  Injection
 } from '../utils/metadata';
 
 
@@ -65,14 +65,20 @@ export function InjectParam(token?: any): ConstructorParameterAnnotation {
     const ctrInjections = getConstructorInjections(Target);
 
     while (ctrInjections.length < index) {
-      ctrInjections.push(MISSED_INJECTION);
+      ctrInjections.push(new Injection());
     }
 
     const type = token !== undefined
                ? token
                : getDesignParamTypes(Target)[index];
 
-    ctrInjections[index] = type;
+    const injection = ctrInjections[index] !== undefined
+                    ? ctrInjections[index]
+                    : new Injection();
+
+    injection.type = type;
+
+    ctrInjections[index] = injection;
 
     setConstructorInjections(ctrInjections, Target);
   };
@@ -86,7 +92,63 @@ export function InjectProperty(token?: any): PropertyAnnotation {
                ? token
                : getDesignType(target, key);
 
-    propInjections.set(key, type);
+    const injection = propInjections.has(key)
+                    ? propInjections.get(key)!
+                    : new Injection();
+
+    injection.type = type;
+
+    propInjections.set(key, injection);
+
+    setPropertyInjections(propInjections, target.constructor);
+  };
+}
+
+export function Optional() {
+  return function decorator(...args: any[]) {
+    if (args[2] === undefined) {
+      return OptionalProperty().apply(null, args);
+    } else {
+      return OptionalParam().apply(null, args);
+    }
+  };
+}
+
+export function OptionalParam(): ConstructorParameterAnnotation {
+  return function decorator(Target, key, index) {
+    if (key !== undefined) {
+      throw new Error(`Cannot inject not into ${stringify(Target)} constructor`);
+    }
+
+    const ctrInjections = getConstructorInjections(Target);
+
+    while (ctrInjections.length < index) {
+      ctrInjections.push(new Injection());
+    }
+
+    const injection = ctrInjections[index] !== undefined
+                    ? ctrInjections[index]
+                    : new Injection();
+
+    injection.isOptional = true;
+
+    ctrInjections[index] = injection;
+
+    setConstructorInjections(ctrInjections, Target);
+  };
+}
+
+export function OptionalProperty(): PropertyAnnotation {
+  return function decorator(target, key) {
+    const propInjections = getPropertyInjections(target.constructor);
+
+    const injection = propInjections.has(key)
+                    ? propInjections.get(key)!
+                    : new Injection();
+
+    injection.isOptional = true;
+
+    propInjections.set(key, injection);
 
     setPropertyInjections(propInjections, target.constructor);
   };

@@ -53,6 +53,15 @@ export enum TypeOfInjection {
   Provider = 'Provider'
 }
 
+
+export class Injection {
+  isOptional: boolean = false;
+
+  constructor(
+    public type: any = MISSED_INJECTION
+  ) { }
+}
+
 function getOwnMetadata(key: string | symbol, target: object): any;
 function getOwnMetadata(key: string | symbol, target: object, propertyKey: string | symbol): any;
 function getOwnMetadata(key: string | symbol, target: object, propertyKey?: string | symbol): any {
@@ -135,11 +144,11 @@ export const setAnnotationName = makeMetadataSetter<string>(METADATA_ANNOTATION_
 export const getInjectionType = makeMetadataGetter<TypeOfInjection | undefined>(METADATA_INJECTION_TYPE, () => undefined);
 export const setInjectionType = makeMetadataSetter<TypeOfInjection>(METADATA_INJECTION_TYPE);
 
-export const getConstructorInjections = makeMetadataGetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
-export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS);
+export const getConstructorInjections = makeMetadataGetter<Injection[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
+export const setConstructorInjections = makeMetadataSetter<Injection[]>(METADATA_CONSTRUCTOR_INJECTIONS);
 
-export const getPropertyInjections = makeMetadataGetter<Map<string | symbol, any>>(METADATA_PROPERTY_INJECTIONS, () => new Map());
-export const setPropertyInjections = makeMetadataSetter<Map<string | symbol, any>>(METADATA_PROPERTY_INJECTIONS);
+export const getPropertyInjections = makeMetadataGetter<Map<string | symbol, Injection>>(METADATA_PROPERTY_INJECTIONS, () => new Map());
+export const setPropertyInjections = makeMetadataSetter<Map<string | symbol, Injection>>(METADATA_PROPERTY_INJECTIONS);
 
 
 export function makeClassAnnotation<T extends Type<any>>(
@@ -165,11 +174,11 @@ export function makeClassAnnotation<T extends Type<any>>(
         }
       } else {
         while (ctrInjections.length < Target.length) {
-          ctrInjections.push(MISSED_INJECTION);
+          ctrInjections.push(new Injection());
         }
 
         for (const [index, injection] of _.entries(ctrInjections)) {
-          if (injection === MISSED_INJECTION) {
+          if (injection.type === MISSED_INJECTION) {
             throw new Error(`Missed annotation for ${index} param in ${stringify(Target)} constructor`);
           }
         }

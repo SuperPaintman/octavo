@@ -45,7 +45,7 @@ export { ViewEngine } from './annotations/view-engine';
 export { Request } from './annotations/request';
 export { Response } from './annotations/response';
 export { View } from './annotations/view';
-export { Service, Factory, Provider, Inject } from './annotations/di';
+export { Service, Factory, Provider, Inject, Optional } from './annotations/di';
 export { Description } from './annotations/description';
 export {
   Next,

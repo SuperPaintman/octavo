@@ -3,7 +3,13 @@
 import { expect } from './helpers';
 
 import { Type } from '../../utils/type';
-import { Service, Factory, Provider, Inject } from '../../annotations/di';
+import {
+  Service,
+  Factory,
+  Provider,
+  Inject,
+  Optional
+} from '../../annotations/di';
 import { Injector } from '../../di/injector';
 
 
@@ -365,6 +371,125 @@ describe('Injector', () => {
     it('should throws an error if injection is defined');
 
     it('should supports inject custom token');
+  });
+
+  describe('@Optional()', () => {
+    it('should work with constructor DI', () => {
+      @Service()
+      class Fuel { }
+
+      @Service()
+      class Engine {
+        constructor(
+          @Inject() @Optional() public fuel: Fuel
+        ) { }
+
+        go() {
+          return 'Vrooom!';
+        }
+      }
+
+      @Service()
+      class Car {
+        constructor(
+          @Inject() public engine: Engine
+        ) { }
+
+        drive() {
+          return this.engine.go();
+        }
+      }
+
+      const injector = new Injector([
+        Engine,
+        Car
+      ]);
+
+      const car = injector.get(Car);
+
+      expect(car).to.be.a.instanceOf(Car);
+      expect(car.engine).to.be.a.instanceOf(Engine);
+      expect(car.engine.fuel).to.be.null;
+      expect(car.drive()).to.be.equals('Vrooom!');
+    });
+
+    it('should work with property DI', () => {
+      @Service()
+      class Fuel { }
+
+      @Service()
+      class Engine {
+        @Inject() public fuel: Fuel;
+
+        go() {
+          return 'Vroom Vroom Vroooooom!';
+        }
+      }
+
+      @Service()
+      class Car {
+        @Inject() @Optional() public engine: Engine;
+
+        drive() {
+          return this.engine.go();
+        }
+      }
+
+      const injector = new Injector([
+        Car
+      ]);
+
+      const car = injector.get(Car);
+
+      expect(car).to.be.a.instanceOf(Car);
+      expect(car.engine).to.be.null;
+    });
+
+    it('should work with constructor DI and property DI both', () => {
+      @Service()
+      class Fuel { }
+
+      @Service()
+      class Engine {
+        constructor(
+          @Inject() @Optional() public fuel: Fuel
+        ) { }
+
+        go() {
+          return 'Vroom Vroom Vroooooom!';
+        }
+      }
+
+      @Service()
+      class Wheels {
+        readonly count = 4;
+      }
+
+      @Service()
+      class Car {
+        @Inject() @Optional() public wheels: Wheels;
+
+        constructor(
+          @Inject() public engine: Engine
+        ) { }
+
+        drive() {
+          return this.engine.go();
+        }
+      }
+
+      const injector = new Injector([
+        Engine,
+        Car
+      ]);
+
+      const car = injector.get(Car);
+
+      expect(car).to.be.a.instanceOf(Car);
+      expect(car.engine).to.be.a.instanceOf(Engine);
+      expect(car.wheels).to.be.null;
+      expect(car.engine.fuel).to.be.null;
+    });
   });
 
   describe('@Service()', () => {

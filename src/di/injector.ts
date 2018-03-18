@@ -137,12 +137,12 @@ export class Injector implements AbstractInjector {
     const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
-      const args = constructorInjections.map((dep) => this.get(dep));
+      const args = constructorInjections.map((dep) => this.get(dep.type, dep.isOptional ? null : undefined));
 
       const value = new Class(...args);
 
       for (const [key, dep] of propertyInjections.entries()) {
-        value[key] = this.get(dep);
+        value[key] = this.get(dep.type, dep.isOptional ? null : undefined);
       }
 
       return value;
@@ -158,7 +158,7 @@ export class Injector implements AbstractInjector {
 
     const record = new Record(() => {
       for (const [key, dep] of propertyInjections.entries()) {
-        Class.prototype[key] = this.get(dep);
+        Class.prototype[key] = this.get(dep.type, dep.isOptional ? null : undefined);
       }
 
       /**
@@ -171,7 +171,7 @@ export class Injector implements AbstractInjector {
       // const Factory = function Factory() { }
       //
       // _.forEach(propertyInjections, (dep, key) => {
-      //   Factory.prototype[key] = this.get(dep);
+      //   Factory.prototype[key] = this.get(dep, dep.isOptional ? null : undefined);
       // });
       //
       // const oldProto = Provider.prototype.__proto__;
@@ -191,7 +191,7 @@ export class Injector implements AbstractInjector {
     const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
-      const args = constructorInjections.map((dep) => this.get(dep));
+      const args = constructorInjections.map((dep) => this.get(dep.type, dep.isOptional ? null : undefined));
 
       const provider = new Class(...args);
 
