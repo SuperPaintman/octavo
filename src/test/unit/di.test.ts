@@ -155,6 +155,20 @@ describe('Injector', () => {
       injector.get(Utils);
     });
 
+    it('should return a default value if "notFoundValue" is defined', () => {
+      @Service()
+      class Config {
+        useNative: boolean;
+      }
+
+      const injector = new Injector([]);
+
+      const config = injector.get(Config, { useNative: false });
+
+      expect(config).to.be.a('object');
+      expect(config).to.be.deep.equal({ useNative: false });
+    });
+
     it('should throws an error if provider is not defined', () => {
       @Service()
       class Utils { }

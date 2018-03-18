@@ -18,6 +18,10 @@ import {
 } from '../annotations/di';
 
 
+/** Constants */
+const THROW_IF_NOT_FOUND = {};
+
+
 class Record<T> {
   isResolved: boolean = false;
 
@@ -39,15 +43,19 @@ class Record<T> {
 
 
 class NullInjector implements AbstractInjector {
-  get(token: any): any {
-    throw new Error(`No provider for ${stringify(token)}!`);
+  get(token: any, notFoundValue: any = THROW_IF_NOT_FOUND): any {
+    if (notFoundValue === THROW_IF_NOT_FOUND) {
+      throw new Error(`No provider for ${stringify(token)}!`);
+    }
+
+    return notFoundValue;
   }
 }
 
 export abstract class AbstractInjector {
   static NULL: AbstractInjector = new NullInjector();
 
-  abstract get(token: any): any;
+  abstract get(token: any, notFoundValue?: any): any;
 }
 
 
@@ -63,17 +71,17 @@ export class Injector implements AbstractInjector {
 
   // get<T extends ServiceType>(token: Type<T>): T;
   // get<T>(token: Type<T>): T | Type<T>;
-  get<T extends ServiceType>(token: Type<T>): T;
-  get<T extends FactoryType>(token: Type<T>): Type<T>;
-  get<T>(token: Type<ProviderType<T>>): T;
-  get(token: any): any {
+  get<T extends ServiceType>(token: Type<T>, notFoundValue?: T): T;
+  get<T extends FactoryType>(token: Type<T>, notFoundValue?: Type<T>): Type<T>;
+  get<T>(token: Type<ProviderType<T>>, notFoundValue?: T): T;
+  get(token: any, notFoundValue?: any): any {
     const record = this._records.get(token);
 
     if (record !== undefined) {
       return record.resolve();
     }
 
-    const parentValue = this.parent.get(token);
+    const parentValue = this.parent.get(token, notFoundValue);
 
     if (parentValue !== undefined) {
       return parentValue;
