@@ -133,9 +133,9 @@ export class Injector implements AbstractInjector {
 
       const value = new Class(...args);
 
-      _.forEach(propertyInjections, (dep, key) => {
+      for (const [key, dep] of propertyInjections.entries()) {
         value[key] = this.get(dep);
-      });
+      }
 
       return value;
     });
@@ -149,9 +149,9 @@ export class Injector implements AbstractInjector {
     const propertyInjections = getPropertyInjections(Class);
 
     const record = new Record(() => {
-      _.forEach(propertyInjections, (dep, key) => {
+      for (const [key, dep] of propertyInjections.entries()) {
         Class.prototype[key] = this.get(dep);
-      });
+      }
 
       /**
        * @todo(SuperPaintman):

@@ -138,8 +138,8 @@ export const setInjectionType = makeMetadataSetter<TypeOfInjection>(METADATA_INJ
 export const getConstructorInjections = makeMetadataGetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS, () => []);
 export const setConstructorInjections = makeMetadataSetter<any[]>(METADATA_CONSTRUCTOR_INJECTIONS);
 
-export const getPropertyInjections = makeMetadataGetter<object>(METADATA_PROPERTY_INJECTIONS, () => ({}));
-export const setPropertyInjections = makeMetadataSetter<object>(METADATA_PROPERTY_INJECTIONS);
+export const getPropertyInjections = makeMetadataGetter<Map<string | symbol, any>>(METADATA_PROPERTY_INJECTIONS, () => new Map());
+export const setPropertyInjections = makeMetadataSetter<Map<string | symbol, any>>(METADATA_PROPERTY_INJECTIONS);
 
 
 export function makeClassAnnotation<T extends Type<any>>(

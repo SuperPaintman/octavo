@@ -86,7 +86,7 @@ export function InjectProperty(token?: any): PropertyAnnotation {
                ? token
                : getDesignType(target, key);
 
-    (propInjections as any)[key] = type;
+    propInjections.set(key, type);
 
     setPropertyInjections(propInjections, target.constructor);
   };
