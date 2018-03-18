@@ -46,6 +46,56 @@ describe('Schema', () => {
       expect(value.name).to.be.equal('Aleksandr');
     });
   });
+
+  describe('Validation', () => {
+    it('should throw an SchemaValidationError even with deep targets', async () => {
+      const schema = new Schema(o({
+        deep: o([
+          o({
+            deep: o({
+              a: o({
+                stringItem: string(),
+                numberItem: number(),
+              })
+            })
+          })
+        ]),
+        booleanItem: boolean()
+      }));
+
+      const target = {
+        deep: [
+          {
+            deep: {
+              a: {
+                numberItem: 1337
+              }
+            }
+          },
+          {
+            deep: { }
+          },
+          {
+            deep: {
+              a: {
+                stringItem: 'hello',
+                numberItem: []
+              }
+            }
+          }
+        ],
+        booleanItem: '!!!'
+      };
+
+      const err = await expect(schema.validate(target)).to.rejected;
+      expect(err).to.be.validationError(target, [
+        [undefined, '.deep[0].deep.a.stringItem', { required: 'is required' }],
+        [undefined, '.deep[1].deep.a',            { required: 'is required' }],
+        [[],        '.deep[2].deep.a.numberItem', { type: 'must be a number' }],
+        ['!!!',     '.booleanItem',               { type: 'must be a boolean' }]
+      ]);
+    });
+  });
 });
 
 describe('o()', () => {
@@ -119,19 +169,20 @@ describe('array()', () => {
     expect(value).to.be.deep.equal([1, 3, 3, 7]);
   });
 
-  it('should throws an error if at least one of the items is invalid', async () => {
+  it('should throws a SchemaValidationError if at least one of the items is invalid', async () => {
     const schema = new Schema(array({
       items: [
         number()
       ]
     }));
 
-    /**
-     * @todo(SuperPaintman):
-     *    Add the exact error message
-     */
-    expect(schema.validate([1, 'e', 3, 't']))
-      .to.rejectedWith(Error);
+    const target = [1, 'e', 3, 't'];
+
+    const err = await expect(schema.validate(target)).to.rejected;
+    expect(err).to.be.validationError(target, [
+      ['e', '[1]', { type: 'must be a number' }],
+      ['t', '[3]', { type: 'must be a number' }]
+    ]);
   });
 });
 

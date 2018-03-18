@@ -3,6 +3,12 @@
 import * as _   from 'lodash';
 import * as Joi from 'joi';
 
+import {
+  SchemaValidationError,
+  SchemaValidationErrorItem,
+  SchemaValidationErrorItemConstraintType
+} from '../errors/schema';
+
 
 /** Interfaces */
 export interface SchemaDetailsCommonOptions {
@@ -189,7 +195,7 @@ export class Schema {
   validate<T>(val: T): Promise<T> {
     return new Promise((resolve, reject) => {
       Joi.validate(val, this._joiSchema, this._joivalidateOptions, (err, result) => {
-        err ? reject(this._formatJoiError(err)) : resolve(result);
+        err ? reject(this._transformJoiError(val, err)) : resolve(result);
       });
     });
   }
@@ -198,7 +204,7 @@ export class Schema {
     const { value, error } = Joi.validate(val, this._joiSchema, this._joivalidateOptions);
 
     if (error !== null) {
-      throw this._formatJoiError(error);
+      throw this._transformJoiError(val, error);
     }
 
     return value;
@@ -280,11 +286,80 @@ export class Schema {
     }
   }
 
-  private _formatJoiError(err: Joi.ValidationError): Error {
-    /**
-     * @todo(SuperPaintman)
-     *    Add the `err` transformation to get rid of Joi vendor lock.
-     */
-    return new Error(err.message);
+  private _transformJoiError(target: any, err: Joi.ValidationError): Error {
+    if (!err.isJoi || err.name !== 'ValidationError') {
+      throw err;
+    }
+
+    const errors: { [path: string]: SchemaValidationErrorItem } = { };
+
+    _.forEach(err.details, (err) => {
+      const path = this._formatJoiPath(err.path);
+
+      if (errors[path] === undefined) {
+        errors[path] = new SchemaValidationErrorItem(
+          target,
+          err.path.length > 0 ? _.get(target, err.path) : target,
+          path,
+          { }
+        );
+      }
+
+      this._transformJoiErrorItem(err, errors[path]);
+    });
+
+    return new SchemaValidationError(_.toArray(errors));
+  }
+
+  private _transformJoiErrorItem(err: Joi.ValidationErrorItem, error: SchemaValidationErrorItem): void {
+    switch (err.type) {
+      // Boolean
+      case 'boolean.base':
+        error.constraints[SchemaValidationErrorItemConstraintType.TYPE] = 'must be a boolean';
+        break;
+
+      // Number
+      case 'number.base':
+        error.constraints[SchemaValidationErrorItemConstraintType.TYPE] = 'must be a number';
+        break;
+
+      // String
+      case 'string.base':
+        error.constraints[SchemaValidationErrorItemConstraintType.TYPE] = 'must be a string';
+        break;
+
+      // Array
+      case 'array.base':
+        error.constraints[SchemaValidationErrorItemConstraintType.TYPE] = 'must be an array';
+        break;
+
+      // Object
+      case 'object.base':
+        error.constraints[SchemaValidationErrorItemConstraintType.TYPE] = 'must be an object';
+        break;
+
+      // Any
+      case 'any.required':
+        error.constraints[SchemaValidationErrorItemConstraintType.REQUIRED] = 'is required';
+        break;
+
+      default:
+        error.constraints[SchemaValidationErrorItemConstraintType.OTHER] = 'has other error';
+        break;
+    }
+  }
+
+  private _formatJoiPath(path: (string | number)[]): string {
+    if (path.length === 0) {
+      return '.';
+    }
+
+    let res = '';
+    for (let i = 0, ii = path.length; i < ii; i++) {
+      const p = path[i];
+      res += _.isNumber(p) ? `[${p}]` : `.${p}`;
+    }
+
+    return res;
   }
 }
