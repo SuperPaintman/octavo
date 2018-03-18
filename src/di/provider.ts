@@ -1,5 +1,6 @@
 'use strict';
 /** Imports */
+import { InjectionToken } from './injection-token';
 import { Type } from '../utils/type';
 import {
   ServiceType,
@@ -7,6 +8,10 @@ import {
   ProviderType
 } from '../annotations/di';
 
+export interface OverrideRawProvider {
+  use: any;
+  insteadOf: InjectionToken<any>;
+}
 
 export interface OverrideServiceProvider {
   use: Type<ServiceType>;
@@ -24,6 +29,7 @@ export interface OverrideProviderProvider {
 }
 
 export type OverrideProvider =
+  | OverrideRawProvider
   | OverrideServiceProvider
   | OverrideFactoryProvider
   | OverrideProviderProvider

@@ -2,6 +2,7 @@
 /** Imports */
 import * as _ from 'lodash';
 
+import { InjectionToken } from './injection-token';
 import { Provider, OverrideProvider } from './provider';
 import { Type } from '../utils/type';
 import { stringify } from '../utils/stringify';
@@ -74,6 +75,7 @@ export class Injector implements AbstractInjector {
   get<T extends ServiceType>(token: Type<T>, notFoundValue?: T): T;
   get<T extends FactoryType>(token: Type<T>, notFoundValue?: Type<T>): Type<T>;
   get<T>(token: Type<ProviderType<T>>, notFoundValue?: T): T;
+  get<T>(token: InjectionToken<T>, notFoundValue?: T): T;
   get(token: any, notFoundValue?: any): any {
     const record = this._records.get(token);
 
@@ -108,7 +110,11 @@ export class Injector implements AbstractInjector {
     return this._loadType(obj.use, obj.insteadOf);
   }
 
-  private _loadType(Provider: Type<any>, token: Type<any>): this {
+  private _loadType(Provider: Type<any>, token: Type<any> | InjectionToken<any>): this {
+    if (token instanceof InjectionToken) {
+      return this._loadWithoutAnnotation(Provider, token);
+    }
+
     const type = getInjectionType(Provider);
     const typeOfToken = getInjectionType(token);
 
@@ -130,6 +136,14 @@ export class Injector implements AbstractInjector {
       case TypeOfInjection.Provider: return this._loadProvider(Provider, token);
       default: throw new Error(`Undefined provider type: ${type}`);
     }
+  }
+
+  private _loadWithoutAnnotation(value: any, token: InjectionToken<any>): this {
+    const record = new Record(() => value);
+
+    this._records.set(token, record);
+
+    return this;
   }
 
   private _loadService(Class: Type<any>, token: Type<any>): this {

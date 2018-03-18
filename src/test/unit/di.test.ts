@@ -11,6 +11,7 @@ import {
   Optional
 } from '../../annotations/di';
 import { Injector } from '../../di/injector';
+import { InjectionToken } from '../../di/injection-token';
 
 
 describe('Injector', () => {
@@ -242,6 +243,35 @@ describe('Injector', () => {
 
   describe('#load()', () => {
     it('should works');
+  });
+
+  describe('InjectionToken', () => {
+    it('should support for override the InjectionToken', () => {
+      const DB_CONNECTION_TOKEN = new InjectionToken<string>('DB Connection');
+      const value = 'octavo://127.0.0.1:1337/leet';
+
+      @Service()
+      class DataBase {
+        constructor(
+          @Inject(DB_CONNECTION_TOKEN) public connection: string
+        ) { }
+      }
+
+      const injector = new Injector([
+        DataBase,
+        { use: value, insteadOf: DB_CONNECTION_TOKEN }
+      ]);
+
+      const db = injector.get(DataBase);
+      const dbConnection = injector.get(DB_CONNECTION_TOKEN);
+
+      expect(db).to.be.a.instanceOf(DataBase);
+      expect(db.connection).to.be.a('string');
+      expect(db.connection).to.be.equals(value);
+
+      expect(dbConnection).to.be.a('string');
+      expect(dbConnection).to.be.equals(value);
+    });
   });
 
   describe('@Inject()', () => {

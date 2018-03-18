@@ -59,6 +59,7 @@ export {
 
 // DI
 export { Injector } from './di/injector';
+export { InjectionToken } from './di/injection-token';
 
 // Schema
 export {
