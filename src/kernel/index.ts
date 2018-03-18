@@ -981,17 +981,18 @@ export class Kernel {
       tolerantPromise(this._validateRequestQuery(ctx.request.query, querySchema))
     ]);
 
-    /**
-     * @todo(SuperPaintman):
-     *    Add merging errors into one BFE (Big Fluffy Error) :)
-     */
     if (
-      headers.error   !== null
-      || params.error !== null
-      || query.error  !== null
-      || body.error   !== null
+      body.error       !== null
+      || params.error  !== null
+      || headers.error !== null
+      || query.error   !== null
     ) {
-      throw new ValidationError();
+      throw ValidationError.fromSchemaValidationErrors(
+        body.error,
+        params.error,
+        headers.error,
+        query.error
+      );
     }
 
     return {

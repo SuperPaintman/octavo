@@ -73,6 +73,11 @@ export {
 
 // Errors
 export * from './errors/http';
+export {
+  ValidationError,
+  ValidationErrorItem,
+  ValidationErrorLocation
+} from './errors/validation';
 
 // View Engine
 export { ViewEngineRender } from './view-engine';
