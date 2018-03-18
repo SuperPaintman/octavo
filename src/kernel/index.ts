@@ -138,7 +138,7 @@ export class Kernel {
   constructor(
     Application: Type<OctavoApplication>
   ) {
-    const providers = getProviders(Application);
+    const providers = _.flattenDeep(getProviders(Application));
 
     // Init injector
     this._injector = new Injector(providers, this._defaultInjector);

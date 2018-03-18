@@ -37,4 +37,5 @@ export type OverrideProvider =
 
 export type Provider =
   | OverrideProvider
-  | Type<any>;
+  | Type<any>
+  | any[];
